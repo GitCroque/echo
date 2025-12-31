@@ -1,6 +1,15 @@
+# Echo - Anonymous messages through the void
+# 
+# Option 1: Use pre-built image (recommended)
+#   image: ghcr.io/gitcroque/echo:latest
+#
+# Option 2: Build locally
+#   build: .
+
 services:
   echo:
-    build: .
+    image: ghcr.io/gitcroque/echo:latest
+    # build: .  # Uncomment to build locally instead
     ports:
       - "3000:3000"
     volumes:
