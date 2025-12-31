@@ -1,0 +1,13 @@
+services:
+  echo:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - echo-data:/data
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  echo-data:

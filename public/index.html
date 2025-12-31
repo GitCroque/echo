@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f0f1a">
+  <meta name="description" content="Anonymous messages through the void - Send and receive anonymous messages from strangers">
+  <title>ECHO - Anonymous messages through the void</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+      color: #e8e8f0;
+      font-family: 'Cormorant Garamond', serif;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Stars background - multiple layers for depth */
+    .stars-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .stars {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+    }
+
+    .stars-layer-1 {
+      animation: drift 80s linear infinite;
+    }
+
+    .stars-layer-2 {
+      animation: drift 120s linear infinite;
+    }
+
+    .stars-layer-3 {
+      animation: drift 200s linear infinite;
+    }
+
+    @keyframes drift {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      25% {
+        transform: translate(2%, 1%) rotate(0.5deg);
+      }
+      50% {
+        transform: translate(0, 2%) rotate(0deg);
+      }
+      75% {
+        transform: translate(-2%, 1%) rotate(-0.5deg);
+      }
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+    }
+
+    .star {
+      position: absolute;
+      background: #ffffff;
+      border-radius: 50%;
+      animation: twinkle var(--duration) ease-in-out infinite;
+      animation-delay: var(--delay);
+    }
+
+    /* Brighter stars have glow */
+    .star.bright {
+      box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.4);
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--opacity); transform: scale(1); }
+      50% { opacity: 0.2; transform: scale(0.8); }
+    }
+
+    /* Shooting stars */
+    .shooting-star {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6);
+      animation: shoot linear forwards;
+    }
+
+    .shooting-star::before {
+      content: '';
+      position: absolute;
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.4), transparent);
+      transform: translateX(-100%) translateY(-50%);
+      top: 50%;
+      right: 0;
+    }
+
+    @keyframes shoot {
+      0% {
+        transform: translateX(0) translateY(0) rotate(45deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(var(--travel-x)) translateY(var(--travel-y)) rotate(45deg);
+        opacity: 0;
+      }
+    }
+
+    /* Main container */
+    .container {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .title {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(3rem, 10vw, 6rem);
+      font-weight: 700;
+      letter-spacing: 1.5rem;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #ffffff 0%, #a0a0b0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      font-weight: 400;
+      font-style: italic;
+      opacity: 0.7;
+      letter-spacing: 0.2rem;
+    }
+
+    /* Main content area */
+    .main-content {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    /* Sections */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* Section title */
+    .section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2rem;
+      margin-bottom: 2rem;
+      opacity: 0.7;
+      text-align: center;
+    }
+
+    /* Send form */
+    .send-form textarea {
+      width: 100%;
+      height: 180px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(232, 232, 240, 0.2);
+      color: #e8e8f0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      padding: 1.5rem;
+      resize: none;
+      margin-bottom: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .send-form textarea:focus {
+      outline: none;
+      border-color: rgba(232, 232, 240, 0.4);
+    }
+
+    .send-form textarea::placeholder {
+      color: rgba(232, 232, 240, 0.4);
+      font-style: italic;
+    }
+
+    .char-counter {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      text-align: right;
+      opacity: 0.5;
+      margin-bottom: 1.5rem;
+    }
+
+    .char-counter.warning {
+      color: #ff6b6b;
+      opacity: 1;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      padding: 1rem 2.5rem;
+      background: transparent;
+      border: 1px solid rgba(232, 232, 240, 0.3);
+      color: #e8e8f0;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.3rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(232, 232, 240, 0.05);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .btn:hover {
+      border-color: rgba(232, 232, 240, 0.6);
+      box-shadow: 0 0 30px rgba(232, 232, 240, 0.1),
+                  inset 0 0 20px rgba(232, 232, 240, 0.05);
+    }
+
+    .btn:hover::before {
+      transform: translateX(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Receive section */
+    .receive-section {
+      text-align: center;
+    }
+
+    .receive-intro {
+      font-size: 1.1rem;
+      font-style: italic;
+      opacity: 0.7;
+      margin-bottom: 2rem;
+    }
+
+    /* Message display */
+    .message-display {
+      display: none;
+      margin-top: 2rem;
+      padding: 2rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(232, 232, 240, 0.1);
+    }
+
+    .message-display.active {
+      display: block;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2rem;
+      opacity: 0.5;
+      margin-bottom: 1rem;
+    }
+
+    .message-content {
+      font-size: 1.3rem;
+      line-height: 1.8;
+      font-style: italic;
+      margin-bottom: 1.5rem;
+      animation: typeIn 0.8s ease-out;
+    }
+
+    @keyframes typeIn {
+      from {
+        opacity: 0;
+        filter: blur(4px);
+      }
+      to {
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+
+    .message-date {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      opacity: 0.5;
+    }
+
+    .message-error {
+      font-style: italic;
+      opacity: 0.7;
+      text-align: center;
+    }
+
+    .message-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(232, 232, 240, 0.1);
+    }
+
+    .btn-report {
+      background: none;
+      border: none;
+      color: #e8e8f0;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      opacity: 0.4;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1rem;
+      transition: opacity 0.3s ease;
+      padding: 0.5rem;
+    }
+
+    .btn-report:hover {
+      opacity: 0.8;
+    }
+
+    .btn-report.reported {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .btn-another {
+      margin-top: 2rem;
+    }
+
+    /* Top bar */
+    .top-bar {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 10;
+    }
+
+    /* Sound toggle */
+    .sound-toggle {
+      background: none;
+      border: 1px solid rgba(232, 232, 240, 0.2);
+      color: #e8e8f0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      opacity: 0.5;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sound-toggle:hover {
+      opacity: 1;
+      border-color: rgba(232, 232, 240, 0.5);
+    }
+
+    .sound-toggle.muted {
+      opacity: 0.3;
+    }
+
+    .sound-toggle svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Stats */
+    .stats {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      opacity: 0.4;
+    }
+
+    /* Footer */
+    .footer {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      font-style: italic;
+      opacity: 0.4;
+      z-index: 1;
+      text-align: center;
+    }
+
+    /* Loading */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(232, 232, 240, 0.3);
+      border-top-color: #e8e8f0;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(26, 26, 46, 0.95);
+      border: 1px solid rgba(232, 232, 240, 0.2);
+      padding: 1rem 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .title {
+        letter-spacing: 0.5rem;
+      }
+
+      .send-form textarea {
+        height: 150px;
+      }
+
+      .top-bar {
+        top: 1rem;
+        right: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Stars background with multiple layers -->
+  <div class="stars-container" id="stars-container">
+    <div class="stars stars-layer-1" id="stars-layer-1"></div>
+    <div class="stars stars-layer-2" id="stars-layer-2"></div>
+    <div class="stars stars-layer-3" id="stars-layer-3"></div>
+  </div>
+
+  <!-- Top bar with sound toggle and stats -->
+  <div class="top-bar">
+    <div class="stats" id="stats"></div>
+    <button class="sound-toggle" id="sound-toggle" title="Toggle sound">
+      <svg id="sound-icon-on" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+      </svg>
+      <svg id="sound-icon-off" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Main content -->
+  <div class="container">
+    <header class="header">
+      <h1 class="title">ECHO</h1>
+      <p class="subtitle">Anonymous messages through the void</p>
+    </header>
+
+    <div class="main-content">
+      <!-- Send Section (shown first) -->
+      <div class="section active" id="section-send">
+        <h2 class="section-title">Send a signal to receive one</h2>
+        <form class="send-form" id="send-form">
+          <textarea
+            id="message-input"
+            placeholder="What do you want to transmit to the universe?"
+            maxlength="500"
+          ></textarea>
+          <div class="char-counter" id="char-counter">0 / 500</div>
+          <button type="submit" class="btn" id="btn-send">Transmit</button>
+        </form>
+      </div>
+
+      <!-- Receive Section (shown after sending) -->
+      <div class="section" id="section-receive">
+        <div class="receive-section">
+          <h2 class="section-title">Your signal was transmitted</h2>
+          <p class="receive-intro">You can now listen to the void.</p>
+          <button class="btn" id="btn-receive">Receive a signal</button>
+
+          <div class="message-display" id="message-display">
+            <div class="message-label">Signal from a stranger</div>
+            <p class="message-content" id="message-content"></p>
+            <p class="message-date" id="message-date"></p>
+            <div class="message-actions" id="message-actions" style="display: none;">
+              <button class="btn-report" id="btn-report">Report</button>
+              <span></span>
+            </div>
+          </div>
+
+          <button class="btn btn-another" id="btn-another" style="display: none;">Receive another signal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    Somewhere, someone is listening
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Application JavaScript -->
+  <script src="/app.js"></script>
+</body>
+</html>
