@@ -1,9 +1,12 @@
-const CACHE_NAME = 'echo-v2';
+const CACHE_NAME = 'echo-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/app.js',
   '/manifest.json',
+  '/icon-180.png',
+  '/icon-192.png',
+  '/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap'
 ];
 
