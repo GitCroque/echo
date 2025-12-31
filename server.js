@@ -1,5 +1,6 @@
 const express = require('express');
 const helmet = require('helmet');
+const compression = require('compression');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
@@ -27,6 +28,9 @@ app.use(helmet({
 
 // Disable X-Powered-By header (already done by helmet, but explicit)
 app.disable('x-powered-by');
+
+// Enable gzip compression for all responses
+app.use(compression());
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 2 * 60 * 1000; // 2 minutes
@@ -195,6 +199,9 @@ app.post('/api/message/random', (req, res) => {
   }
 });
 
+// Auto-moderation threshold
+const REPORT_THRESHOLD = 3;
+
 // POST /api/report - Report a message
 app.post('/api/report', (req, res) => {
   const { messageId, reason } = req.body;
@@ -213,8 +220,21 @@ app.post('/api/report', (req, res) => {
     }
 
     // Insert report
-    const stmt = db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)');
-    stmt.run(messageId, reason || null);
+    const insertStmt = db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)');
+    insertStmt.run(messageId, reason || null);
+
+    // Check report count for auto-moderation
+    const countStmt = db.prepare('SELECT COUNT(*) as count FROM reports WHERE message_id = ?');
+    const { count } = countStmt.get(messageId);
+
+    if (count >= REPORT_THRESHOLD) {
+      // Auto-delete message and its reports
+      const deleteReportsStmt = db.prepare('DELETE FROM reports WHERE message_id = ?');
+      const deleteMessageStmt = db.prepare('DELETE FROM messages WHERE id = ?');
+      deleteReportsStmt.run(messageId);
+      deleteMessageStmt.run(messageId);
+      console.log(`🛡️ Auto-moderation: Message ${messageId} deleted (${count} reports)`);
+    }
 
     res.status(201).json({
       success: true,

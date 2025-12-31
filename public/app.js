@@ -107,8 +107,12 @@
 
   // Save state to sessionStorage
   function saveState() {
+    // Keep only the last 100 seen message IDs to prevent storage bloat
+    const limitedIds = seenMessageIds.slice(-100);
+    seenMessageIds = limitedIds;
+    
     sessionStorage.setItem('echo_state', JSON.stringify({
-      seenMessageIds,
+      seenMessageIds: limitedIds,
       hasSent
     }));
   }
