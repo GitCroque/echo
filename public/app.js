@@ -460,6 +460,7 @@
       btnSend: document.getElementById('btn-send'),
       btnReceive: document.getElementById('btn-receive'),
       btnAnother: document.getElementById('btn-another'),
+      btnNewSignal: document.getElementById('btn-new-signal'),
       btnReport: document.getElementById('btn-report'),
       messageDisplay: document.getElementById('message-display'),
       messageContent: document.getElementById('message-content'),
@@ -507,6 +508,32 @@
     if (elements.btnAnother) {
       elements.btnAnother.addEventListener('click', function() {
         receiveMessage(this);
+      });
+    }
+
+    // New signal button - go back to send section
+    if (elements.btnNewSignal) {
+      elements.btnNewSignal.addEventListener('click', function() {
+        // Reset the form
+        if (elements.messageInput) {
+          elements.messageInput.value = '';
+        }
+        if (elements.charCounter) {
+          elements.charCounter.textContent = '0 / 500';
+          elements.charCounter.classList.remove('warning');
+        }
+        // Hide message display
+        if (elements.messageDisplay) {
+          elements.messageDisplay.classList.remove('active');
+        }
+        if (elements.btnAnother) {
+          elements.btnAnother.style.display = 'none';
+        }
+        if (elements.btnReceive) {
+          elements.btnReceive.style.display = 'block';
+        }
+        // Show send section
+        showSection('section-send');
       });
     }
   }
