@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echo-v5';
+const CACHE_NAME = 'echo-v6';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
