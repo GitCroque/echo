@@ -1,9 +1,10 @@
-const CACHE_NAME = 'echo-v6';
+const CACHE_NAME = 'echo-v7';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/app.js',
   '/manifest.json',
+  '/favicon.png',
   '/icon-180.png',
   '/icon-192.png',
   '/icon-512.png',
