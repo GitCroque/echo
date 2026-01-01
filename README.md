@@ -9,7 +9,7 @@
 <h4 align="center">Anonymous messages through the void — A cosmic bottle in the digital ocean.</h4>
 
 <p align="center">
-  <a href="https://sendecho.app"><strong>🌐 Try it live → sendecho.app</strong></a>
+  <a href="https://sendecho.app"><strong>sendecho.app</strong></a>
 </p>
 
 <p align="center">
