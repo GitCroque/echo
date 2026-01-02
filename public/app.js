@@ -289,17 +289,86 @@
 
   // Show section
   function showSection(sectionId) {
-    console.log('showSection called:', sectionId);
     document.querySelectorAll('.section').forEach(function(s) {
       s.classList.remove('active');
     });
     const section = document.getElementById(sectionId);
     if (section) {
       section.classList.add('active');
-      console.log('Section activated:', sectionId);
-    } else {
-      console.warn('Section not found:', sectionId);
     }
+  }
+
+  // Receive message directly from home page
+  async function receiveMessageDirect(btn) {
+    const originalText = btn.textContent;
+    btn.innerHTML = '<span class="loading"></span>';
+    btn.disabled = true;
+
+    try {
+      const response = await fetch('/api/message/random', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exclude: seenMessageIds })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Add to seen messages
+        seenMessageIds.push(data.id);
+        if (seenMessageIds.length > 100) {
+          seenMessageIds.shift();
+        }
+        currentMessageId = data.id;
+        saveState();
+
+        // Play sound
+        playReceiveSound();
+
+        // Prepare the receive section
+        if (elements.receiveIntro) {
+          elements.receiveIntro.textContent = 'Someone, somewhere, sent this message into the void.';
+        }
+        if (elements.messageContent) {
+          elements.messageContent.innerHTML = escapeHtml(data.content);
+        }
+        if (elements.messageDate) {
+          let dateText = formatDate(data.created_at);
+          if (data.country) {
+            dateText = 'From ' + data.country + ' · ' + dateText;
+          }
+          elements.messageDate.textContent = dateText;
+        }
+        if (elements.messageDisplay) {
+          elements.messageDisplay.classList.add('active');
+        }
+        if (elements.messageActions) {
+          elements.messageActions.style.display = 'flex';
+        }
+        if (elements.btnReport) {
+          elements.btnReport.classList.remove('reported');
+          elements.btnReport.textContent = 'Report';
+          elements.btnReport.disabled = false;
+        }
+        if (elements.btnReceive) {
+          elements.btnReceive.style.display = 'none';
+        }
+        if (elements.btnAnother) {
+          elements.btnAnother.style.display = 'block';
+        }
+
+        // Navigate to receive section
+        showSection('section-receive');
+      } else {
+        showToast(data.error || 'Error receiving signal');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showToast('Network error. Please try again.');
+    }
+
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 
   // Receive message
@@ -328,8 +397,11 @@
       }
 
       if (response.ok) {
-        // Add to seen messages
+        // Add to seen messages (limit to 100)
         seenMessageIds.push(data.id);
+        if (seenMessageIds.length > 100) {
+          seenMessageIds.shift();
+        }
         currentMessageId = data.id;
         saveState();
 
@@ -343,7 +415,11 @@
             elements.messageContent.innerHTML = escapeHtml(data.content);
           }
           if (elements.messageDate) {
-            elements.messageDate.textContent = formatDate(data.created_at);
+            let dateText = formatDate(data.created_at);
+            if (data.country) {
+              dateText = 'From ' + data.country + ' · ' + dateText;
+            }
+            elements.messageDate.textContent = dateText;
           }
           if (messageDisplay) {
             messageDisplay.classList.add('active');
@@ -577,27 +653,19 @@
 
     // Home navigation buttons
     if (elements.btnGoSend) {
-      console.log('btnGoSend found, adding listener');
       elements.btnGoSend.addEventListener('click', function(e) {
         e.preventDefault();
-        console.log('Send button clicked');
         resetSendForm();
         showSection('section-send');
       });
-    } else {
-      console.warn('btnGoSend NOT found!');
     }
 
     if (elements.btnGoReceive) {
-      console.log('btnGoReceive found, adding listener');
       elements.btnGoReceive.addEventListener('click', function(e) {
         e.preventDefault();
-        console.log('Receive button clicked');
-        resetReceiveSection();
-        showSection('section-receive');
+        // Directly receive a message without going to intermediate screen
+        receiveMessageDirect(this);
       });
-    } else {
-      console.warn('btnGoReceive NOT found!');
     }
 
     // Back buttons
@@ -657,9 +725,7 @@
 
   // Initialize application
   function init() {
-    console.log('Echo app initializing...');
     cacheElements();
-    console.log('Elements cached:', Object.keys(elements).filter(k => elements[k]).join(', '));
     bindEvents();
     generateStars();
     scheduleShootingStar();

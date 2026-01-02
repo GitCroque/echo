@@ -91,9 +91,17 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
+    country TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// Add country column if it doesn't exist (migration for existing databases)
+try {
+  db.exec('ALTER TABLE messages ADD COLUMN country TEXT');
+} catch (e) {
+  // Column already exists, ignore error
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS reports (
@@ -117,8 +125,32 @@ app.set('trust proxy', 1);
 
 // API Routes
 
+// Helper function to get country from IP
+async function getCountryFromIP(ip) {
+  try {
+    // Skip for localhost/private IPs
+    if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+      return null;
+    }
+    
+    // Clean IP (remove ::ffff: prefix for IPv4-mapped IPv6)
+    const cleanIP = ip.replace(/^::ffff:/, '');
+    
+    const response = await fetch(`http://ip-api.com/json/${cleanIP}?fields=status,country`);
+    const data = await response.json();
+    
+    if (data.status === 'success' && data.country) {
+      return data.country;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching country:', error);
+    return null;
+  }
+}
+
 // POST /api/message - Save a new message (with rate limiting)
-app.post('/api/message', rateLimiter, (req, res) => {
+app.post('/api/message', rateLimiter, async (req, res) => {
   const { content } = req.body;
 
   if (!content || typeof content !== 'string') {
@@ -136,8 +168,12 @@ app.post('/api/message', rateLimiter, (req, res) => {
   }
 
   try {
-    const stmt = db.prepare('INSERT INTO messages (content) VALUES (?)');
-    const result = stmt.run(trimmedContent);
+    // Get country from IP (async, don't block if it fails)
+    const ip = req.ip || req.connection.remoteAddress;
+    const country = await getCountryFromIP(ip);
+    
+    const stmt = db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)');
+    const result = stmt.run(trimmedContent, country);
     res.status(201).json({
       success: true,
       id: result.lastInsertRowid
@@ -162,10 +198,10 @@ app.post('/api/message/random', (req, res) => {
 
     if (excludeIds.length > 0) {
       const placeholders = excludeIds.map(() => '?').join(',');
-      query = `SELECT id, content, created_at FROM messages WHERE id NOT IN (${placeholders}) ORDER BY RANDOM() LIMIT 1`;
+      query = `SELECT id, content, country, created_at FROM messages WHERE id NOT IN (${placeholders}) ORDER BY RANDOM() LIMIT 1`;
       params = excludeIds;
     } else {
-      query = 'SELECT id, content, created_at FROM messages ORDER BY RANDOM() LIMIT 1';
+      query = 'SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1';
       params = [];
     }
 
@@ -191,6 +227,7 @@ app.post('/api/message/random', (req, res) => {
     res.json({
       id: message.id,
       content: message.content,
+      country: message.country,
       created_at: message.created_at
     });
   } catch (error) {
