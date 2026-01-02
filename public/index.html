@@ -510,10 +510,76 @@
 
     .home-buttons {
       display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      max-width: 320px;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      padding: 0.35rem;
+      max-width: 380px;
       margin: 0 auto;
+    }
+
+    .btn-pill {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.9rem 1.8rem;
+      background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.3) 0%,
+        rgba(100, 149, 237, 0.2) 50%,
+        rgba(147, 112, 219, 0.3) 100%
+      );
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(147, 112, 219, 0.3);
+      border-radius: 50px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .btn-pill:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.5) 0%,
+        rgba(100, 149, 237, 0.4) 50%,
+        rgba(147, 112, 219, 0.5) 100%
+      );
+      border-color: rgba(147, 112, 219, 0.5);
+      box-shadow: 0 4px 20px rgba(147, 112, 219, 0.3);
+    }
+
+    .btn-link {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.9rem 1.5rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      white-space: nowrap;
+    }
+
+    .btn-link:hover {
+      color: var(--text-primary);
+    }
+
+    .home-stats {
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 2rem;
+      opacity: 0.6;
     }
 
     /* Top bar - Glass Pills */
@@ -710,9 +776,10 @@
       <div class="section active" id="section-home">
         <p class="home-intro">Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.</p>
         <div class="home-buttons">
-          <button class="btn btn-primary" id="btn-go-send">Send a Signal</button>
-          <button class="btn btn-ghost" id="btn-go-receive">Receive a Signal</button>
+          <button class="btn-pill" id="btn-go-send">Send a Signal</button>
+          <button class="btn-link" id="btn-go-receive">Receive a Signal</button>
         </div>
+        <p class="home-stats" id="home-stats"></p>
       </div>
 
       <!-- Send Section -->

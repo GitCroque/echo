@@ -222,6 +222,9 @@
       if (elements.stats) {
         elements.stats.textContent = data.total + ' signals';
       }
+      if (elements.homeStats) {
+        elements.homeStats.textContent = data.total + ' signals adrift';
+      }
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -470,6 +473,7 @@
       btnReport: document.getElementById('btn-report'),
       btnGoSend: document.getElementById('btn-go-send'),
       btnGoReceive: document.getElementById('btn-go-receive'),
+      homeStats: document.getElementById('home-stats'),
       btnBackSend: document.getElementById('btn-back-send'),
       btnBackReceive: document.getElementById('btn-back-receive'),
       receiveIntro: document.getElementById('receive-intro'),
