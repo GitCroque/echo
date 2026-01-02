@@ -140,6 +140,55 @@
       100% { transform: translateX(var(--travel-x)) translateY(var(--travel-y)) rotate(45deg); opacity: 0; }
     }
 
+    /* Satellites */
+    .satellite {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.8;
+      animation: satellite-move var(--duration) linear forwards;
+    }
+
+    .satellite::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 6px;
+      width: 8px;
+      height: 1px;
+      background: rgba(100, 149, 237, 0.6);
+      transform: rotate(-20deg);
+      box-shadow: 0 0 4px rgba(100, 149, 237, 0.4);
+    }
+
+    .satellite::after {
+      content: '';
+      position: absolute;
+      top: -1px;
+      right: 6px;
+      width: 8px;
+      height: 1px;
+      background: rgba(100, 149, 237, 0.6);
+      transform: rotate(20deg);
+      box-shadow: 0 0 4px rgba(100, 149, 237, 0.4);
+    }
+
+    .satellite.blink {
+      animation: satellite-move var(--duration) linear forwards, satellite-blink 1s ease-in-out infinite;
+    }
+
+    @keyframes satellite-move {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(var(--travel-x)); }
+    }
+
+    @keyframes satellite-blink {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 0.4; }
+    }
+
     /* Glass effect mixin-like class */
     .glass {
       background: var(--glass-bg);

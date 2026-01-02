@@ -195,6 +195,35 @@
     }, duration * 1000 + 100);
   }
 
+  // Create satellite
+  function createSatellite() {
+    const container = document.getElementById('stars-container');
+    if (!container) return;
+
+    const satellite = document.createElement('div');
+    satellite.className = 'satellite' + (Math.random() > 0.5 ? ' blink' : '');
+
+    // Random starting position (left side, various heights)
+    const startY = 10 + Math.random() * 60;
+    satellite.style.left = '-20px';
+    satellite.style.top = startY + '%';
+
+    // Travel distance (across the screen)
+    const travelX = window.innerWidth + 100;
+    satellite.style.setProperty('--travel-x', travelX + 'px');
+
+    // Slow animation duration (15-30 seconds to cross)
+    const duration = 15 + Math.random() * 15;
+    satellite.style.setProperty('--duration', duration + 's');
+
+    container.appendChild(satellite);
+
+    // Remove after animation
+    setTimeout(function() {
+      satellite.remove();
+    }, duration * 1000 + 100);
+  }
+
   // Schedule random shooting stars
   function scheduleShootingStar() {
     function spawn() {
@@ -205,6 +234,18 @@
     }
     // First one after 1 second
     setTimeout(spawn, 1000);
+  }
+
+  // Schedule satellites
+  function scheduleSatellites() {
+    function spawn() {
+      createSatellite();
+      // Random interval between 8-20 seconds (less frequent than shooting stars)
+      const nextDelay = 8000 + Math.random() * 12000;
+      setTimeout(spawn, nextDelay);
+    }
+    // First one after 3 seconds
+    setTimeout(spawn, 3000);
   }
 
   // Format date
@@ -610,6 +651,7 @@
     bindEvents();
     generateStars();
     scheduleShootingStar();
+    scheduleSatellites();
     loadStats();
     loadState();
     registerServiceWorker();
