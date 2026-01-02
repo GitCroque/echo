@@ -292,12 +292,16 @@
 
   // Show section
   function showSection(sectionId) {
+    console.log('showSection called:', sectionId);
     document.querySelectorAll('.section').forEach(function(s) {
       s.classList.remove('active');
     });
     const section = document.getElementById(sectionId);
     if (section) {
       section.classList.add('active');
+      console.log('Section activated:', sectionId);
+    } else {
+      console.warn('Section not found:', sectionId);
     }
   }
 
@@ -577,17 +581,27 @@
 
     // Home navigation buttons
     if (elements.btnGoSend) {
-      elements.btnGoSend.addEventListener('click', function() {
+      console.log('btnGoSend found, adding listener');
+      elements.btnGoSend.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('Send button clicked');
         resetSendForm();
         showSection('section-send');
       });
+    } else {
+      console.warn('btnGoSend NOT found!');
     }
 
     if (elements.btnGoReceive) {
-      elements.btnGoReceive.addEventListener('click', function() {
+      console.log('btnGoReceive found, adding listener');
+      elements.btnGoReceive.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('Receive button clicked');
         resetReceiveSection();
         showSection('section-receive');
       });
+    } else {
+      console.warn('btnGoReceive NOT found!');
     }
 
     // Back buttons
@@ -647,7 +661,9 @@
 
   // Initialize application
   function init() {
+    console.log('Echo app initializing...');
     cacheElements();
+    console.log('Elements cached:', Object.keys(elements).filter(k => elements[k]).join(', '));
     bindEvents();
     generateStars();
     scheduleShootingStar();
