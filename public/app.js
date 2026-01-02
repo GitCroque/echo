@@ -411,7 +411,13 @@
         hasSent = true;
         saveState();
         loadStats();
+        // Update intro text after sending
+        if (elements.receiveIntro) {
+          elements.receiveIntro.textContent = 'Your signal was transmitted. Now listen to the void.';
+        }
+        resetReceiveSection();
         showSection('section-receive');
+        showToast('Signal transmitted to the cosmos');
       } else {
         showToast(data.error || 'Error sending message');
       }
@@ -462,6 +468,11 @@
       btnAnother: document.getElementById('btn-another'),
       btnNewSignal: document.getElementById('btn-new-signal'),
       btnReport: document.getElementById('btn-report'),
+      btnGoSend: document.getElementById('btn-go-send'),
+      btnGoReceive: document.getElementById('btn-go-receive'),
+      btnBackSend: document.getElementById('btn-back-send'),
+      btnBackReceive: document.getElementById('btn-back-receive'),
+      receiveIntro: document.getElementById('receive-intro'),
       messageDisplay: document.getElementById('message-display'),
       messageContent: document.getElementById('message-content'),
       messageDate: document.getElementById('message-date'),
@@ -511,30 +522,68 @@
       });
     }
 
-    // New signal button - go back to send section
+    // New signal button - go to send section
     if (elements.btnNewSignal) {
       elements.btnNewSignal.addEventListener('click', function() {
-        // Reset the form
-        if (elements.messageInput) {
-          elements.messageInput.value = '';
-        }
-        if (elements.charCounter) {
-          elements.charCounter.textContent = '0 / 500';
-          elements.charCounter.classList.remove('warning');
-        }
-        // Hide message display
-        if (elements.messageDisplay) {
-          elements.messageDisplay.classList.remove('active');
-        }
-        if (elements.btnAnother) {
-          elements.btnAnother.style.display = 'none';
-        }
-        if (elements.btnReceive) {
-          elements.btnReceive.style.display = 'block';
-        }
-        // Show send section
+        resetSendForm();
         showSection('section-send');
       });
+    }
+
+    // Home navigation buttons
+    if (elements.btnGoSend) {
+      elements.btnGoSend.addEventListener('click', function() {
+        resetSendForm();
+        showSection('section-send');
+      });
+    }
+
+    if (elements.btnGoReceive) {
+      elements.btnGoReceive.addEventListener('click', function() {
+        resetReceiveSection();
+        showSection('section-receive');
+      });
+    }
+
+    // Back buttons
+    if (elements.btnBackSend) {
+      elements.btnBackSend.addEventListener('click', function() {
+        showSection('section-home');
+      });
+    }
+
+    if (elements.btnBackReceive) {
+      elements.btnBackReceive.addEventListener('click', function() {
+        showSection('section-home');
+      });
+    }
+  }
+
+  // Reset send form
+  function resetSendForm() {
+    if (elements.messageInput) {
+      elements.messageInput.value = '';
+    }
+    if (elements.charCounter) {
+      elements.charCounter.textContent = '0 / 500';
+      elements.charCounter.classList.remove('warning');
+    }
+  }
+
+  // Reset receive section
+  function resetReceiveSection() {
+    if (elements.messageDisplay) {
+      elements.messageDisplay.classList.remove('active');
+    }
+    if (elements.btnAnother) {
+      elements.btnAnother.style.display = 'none';
+    }
+    if (elements.btnReceive) {
+      elements.btnReceive.style.display = 'block';
+    }
+    if (elements.receiveIntro) {
+      elements.receiveIntro.textContent = 'Discover a signal from a stranger.';
+      elements.receiveIntro.style.display = 'block';
     }
   }
 
@@ -561,10 +610,8 @@
     loadState();
     registerServiceWorker();
 
-    // If user has already sent a message in this session, show receive section
-    if (hasSent) {
-      showSection('section-receive');
-    }
+    // Always start at home section
+    showSection('section-home');
   }
 
   // Start when DOM is ready

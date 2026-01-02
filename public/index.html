@@ -453,22 +453,67 @@
       margin-top: 1.5rem;
     }
 
-    .btn-secondary {
-      margin-top: 1rem;
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: none;
-      font-size: 0.8rem;
-      padding: 0.8rem 1.5rem;
-      opacity: 0.7;
+    .btn-primary {
+      background: linear-gradient(
+        135deg,
+        rgba(147, 112, 219, 0.4) 0%,
+        rgba(100, 149, 237, 0.3) 50%,
+        rgba(147, 112, 219, 0.4) 100%
+      );
+      border-color: rgba(147, 112, 219, 0.5);
     }
 
-    .btn-secondary:hover {
+    .btn-primary:hover {
+      border-color: rgba(147, 112, 219, 0.8);
+      box-shadow: 
+        0 8px 40px rgba(147, 112, 219, 0.4),
+        0 4px 20px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-ghost {
+      margin-top: 1rem;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+      font-size: 0.85rem;
+      padding: 0.9rem 1.5rem;
+      opacity: 0.8;
+    }
+
+    .btn-ghost:hover {
       opacity: 1;
       background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
       box-shadow: none;
       transform: none;
+    }
+
+    .btn-back {
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      padding: 0.6rem 1.2rem;
+      opacity: 0.5;
+    }
+
+    /* Home section */
+    .home-intro {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      text-align: center;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .home-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-width: 320px;
+      margin: 0 auto;
     }
 
     /* Top bar - Glass Pills */
@@ -661,9 +706,18 @@
     </header>
 
     <div class="main-content">
-      <!-- Send Section (shown first) -->
-      <div class="section active" id="section-send">
-        <h2 class="section-title">Send a signal to receive one</h2>
+      <!-- Home Section (landing page) -->
+      <div class="section active" id="section-home">
+        <p class="home-intro">Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.</p>
+        <div class="home-buttons">
+          <button class="btn btn-primary" id="btn-go-send">Send a Signal</button>
+          <button class="btn btn-ghost" id="btn-go-receive">Receive a Signal</button>
+        </div>
+      </div>
+
+      <!-- Send Section -->
+      <div class="section" id="section-send">
+        <h2 class="section-title">Transmit to the void</h2>
         <form class="send-form glass" id="send-form">
           <textarea
             id="message-input"
@@ -671,16 +725,17 @@
             maxlength="500"
           ></textarea>
           <div class="char-counter" id="char-counter">0 / 500</div>
-          <button type="submit" class="btn" id="btn-send">Transmit</button>
+          <button type="submit" class="btn btn-primary" id="btn-send">Transmit</button>
         </form>
+        <button class="btn btn-ghost btn-back" id="btn-back-send">← Back</button>
       </div>
 
-      <!-- Receive Section (shown after sending) -->
+      <!-- Receive Section -->
       <div class="section" id="section-receive">
         <div class="receive-section">
-          <h2 class="section-title">Your signal was transmitted</h2>
-          <p class="receive-intro">You can now listen to the void.</p>
-          <button class="btn" id="btn-receive">Receive a signal</button>
+          <h2 class="section-title">Listen to the void</h2>
+          <p class="receive-intro" id="receive-intro">Discover a signal from a stranger.</p>
+          <button class="btn btn-primary" id="btn-receive">Receive a signal</button>
 
           <div class="message-display" id="message-display">
             <div class="message-label">Signal from a stranger</div>
@@ -692,8 +747,9 @@
             </div>
           </div>
 
-          <button class="btn btn-another" id="btn-another" style="display: none;">Receive another signal</button>
-          <button class="btn btn-secondary" id="btn-new-signal">Send a new signal</button>
+          <button class="btn btn-primary btn-another" id="btn-another" style="display: none;">Receive another</button>
+          <button class="btn btn-ghost" id="btn-new-signal">Send a signal</button>
+          <button class="btn btn-ghost btn-back" id="btn-back-receive">← Back</button>
         </div>
       </div>
     </div>
