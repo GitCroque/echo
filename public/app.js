@@ -260,9 +260,6 @@
     try {
       const response = await fetch('/api/stats');
       const data = await response.json();
-      if (elements.stats) {
-        elements.stats.textContent = data.total + ' signals';
-      }
       if (elements.homeStats) {
         elements.homeStats.textContent = data.total + ' signals adrift';
       }
@@ -507,7 +504,6 @@
       soundToggle: document.getElementById('sound-toggle'),
       soundIconOn: document.getElementById('sound-icon-on'),
       soundIconOff: document.getElementById('sound-icon-off'),
-      stats: document.getElementById('stats'),
       messageInput: document.getElementById('message-input'),
       charCounter: document.getElementById('char-counter'),
       sendForm: document.getElementById('send-form'),
