@@ -1,5 +1,5 @@
-const CACHE_NAME = 'echo-v14';
-const APP_VERSION = '14';
+const CACHE_NAME = 'echo-v15';
+const APP_VERSION = '15';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

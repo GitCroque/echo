@@ -163,8 +163,8 @@ app.post('/api/message', rateLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Message cannot be empty' });
   }
 
-  if (trimmedContent.length > 500) {
-    return res.status(400).json({ error: 'Message cannot exceed 500 characters' });
+  if (trimmedContent.length > 140) {
+    return res.status(400).json({ error: 'Message cannot exceed 140 characters' });
   }
 
   try {

@@ -160,7 +160,7 @@ echo/
 - 🛡️ **Helmet.js** — Security headers (XSS, clickjacking protection)
 - 🔐 **Strict CSP** — No unsafe-inline scripts
 - ⏱️ **Rate limiting** — 5 messages per 2 minutes per IP
-- ✅ **Input validation** — 500 character limit
+- ✅ **Input validation** — 140 character limit
 - 💉 **SQL protection** — Prepared statements only
 - 🤖 **Auto-moderation** — Community-driven content removal
 

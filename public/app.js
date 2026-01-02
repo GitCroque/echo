@@ -556,7 +556,7 @@
     const count = e.target.value.length;
     const counter = elements.charCounter;
     if (counter) {
-      counter.textContent = count + ' / 500';
+      counter.textContent = count + ' / 140';
       counter.classList.toggle('warning', count > 450);
     }
   }
@@ -688,7 +688,7 @@
       elements.messageInput.value = '';
     }
     if (elements.charCounter) {
-      elements.charCounter.textContent = '0 / 500';
+      elements.charCounter.textContent = '0 / 140';
       elements.charCounter.classList.remove('warning');
     }
   }
