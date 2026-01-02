@@ -32,7 +32,7 @@
     }
   }
 
-  // Play receive sound - cosmic ping
+  // Play receive sound - warm cosmic transmission
   function playReceiveSound() {
     if (!soundEnabled || !audioInitialized || !audioContext) return;
 
@@ -44,43 +44,77 @@
 
       const now = audioContext.currentTime;
 
-      // Main tone - ethereal ping
-      const osc1 = audioContext.createOscillator();
-      const gain1 = audioContext.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(880, now);
-      osc1.frequency.exponentialRampToValueAtTime(440, now + 0.3);
-      gain1.gain.setValueAtTime(0.15, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      osc1.connect(gain1);
-      gain1.connect(audioContext.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.6);
+      // Create a low-pass filter for warmth
+      const filter = audioContext.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, now);
+      filter.frequency.exponentialRampToValueAtTime(400, now + 1.2);
+      filter.Q.value = 1;
+      filter.connect(audioContext.destination);
 
-      // Harmonic overtone
-      const osc2 = audioContext.createOscillator();
-      const gain2 = audioContext.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1320, now);
-      osc2.frequency.exponentialRampToValueAtTime(660, now + 0.25);
-      gain2.gain.setValueAtTime(0.08, now);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      osc2.connect(gain2);
-      gain2.connect(audioContext.destination);
-      osc2.start(now);
-      osc2.stop(now + 0.4);
+      // Deep bass foundation - warm rumble
+      const bassDrone = audioContext.createOscillator();
+      const bassGain = audioContext.createGain();
+      bassDrone.type = 'sine';
+      bassDrone.frequency.setValueAtTime(65, now); // Low C
+      bassDrone.frequency.exponentialRampToValueAtTime(55, now + 1.5);
+      bassGain.gain.setValueAtTime(0, now);
+      bassGain.gain.linearRampToValueAtTime(0.2, now + 0.1);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+      bassDrone.connect(bassGain);
+      bassGain.connect(filter);
+      bassDrone.start(now);
+      bassDrone.stop(now + 1.5);
 
-      // Sub bass
-      const osc3 = audioContext.createOscillator();
-      const gain3 = audioContext.createGain();
-      osc3.type = 'sine';
-      osc3.frequency.setValueAtTime(110, now);
-      gain3.gain.setValueAtTime(0.1, now);
-      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      osc3.connect(gain3);
-      gain3.connect(audioContext.destination);
-      osc3.start(now);
-      osc3.stop(now + 0.5);
+      // Main tone - warm mid frequency
+      const mainTone = audioContext.createOscillator();
+      const mainGain = audioContext.createGain();
+      mainTone.type = 'triangle'; // Softer than sine
+      mainTone.frequency.setValueAtTime(220, now); // A3 - warm
+      mainTone.frequency.exponentialRampToValueAtTime(165, now + 0.8); // E3
+      mainGain.gain.setValueAtTime(0, now);
+      mainGain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+      mainGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+      mainTone.connect(mainGain);
+      mainGain.connect(filter);
+      mainTone.start(now);
+      mainTone.stop(now + 1.0);
+
+      // Soft harmonic - fifth above
+      const harmonic = audioContext.createOscillator();
+      const harmGain = audioContext.createGain();
+      harmonic.type = 'sine';
+      harmonic.frequency.setValueAtTime(330, now); // E4
+      harmonic.frequency.exponentialRampToValueAtTime(247, now + 0.6); // B3
+      harmGain.gain.setValueAtTime(0, now);
+      harmGain.gain.linearRampToValueAtTime(0.08, now + 0.1);
+      harmGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      harmonic.connect(harmGain);
+      harmGain.connect(filter);
+      harmonic.start(now);
+      harmonic.stop(now + 0.8);
+
+      // Subtle shimmer - delayed sparkle
+      setTimeout(function() {
+        if (!audioContext || audioContext.state !== 'running') return;
+        const shimmer = audioContext.createOscillator();
+        const shimGain = audioContext.createGain();
+        const shimFilter = audioContext.createBiquadFilter();
+        shimFilter.type = 'bandpass';
+        shimFilter.frequency.value = 600;
+        shimFilter.Q.value = 2;
+        shimmer.type = 'sine';
+        shimmer.frequency.setValueAtTime(440, audioContext.currentTime);
+        shimmer.frequency.exponentialRampToValueAtTime(330, audioContext.currentTime + 0.5);
+        shimGain.gain.setValueAtTime(0.05, audioContext.currentTime);
+        shimGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.6);
+        shimmer.connect(shimGain);
+        shimGain.connect(shimFilter);
+        shimFilter.connect(audioContext.destination);
+        shimmer.start(audioContext.currentTime);
+        shimmer.stop(audioContext.currentTime + 0.6);
+      }, 200);
+
     } catch (e) {
       console.log('Error playing sound:', e);
     }
