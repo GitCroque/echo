@@ -120,6 +120,296 @@
     }
   }
 
+  // Play send sound - ascending transmission
+  function playSendSound() {
+    if (!soundEnabled || !audioInitialized || !audioContext) return;
+
+    try {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      const now = audioContext.currentTime;
+
+      // High-pass filter for "lifting off" feeling
+      const filter = audioContext.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(200, now);
+      filter.frequency.exponentialRampToValueAtTime(800, now + 0.6);
+      filter.Q.value = 0.5;
+      filter.connect(audioContext.destination);
+
+      // Ascending main tone
+      const mainTone = audioContext.createOscillator();
+      const mainGain = audioContext.createGain();
+      mainTone.type = 'sine';
+      mainTone.frequency.setValueAtTime(220, now);
+      mainTone.frequency.exponentialRampToValueAtTime(440, now + 0.4);
+      mainTone.frequency.exponentialRampToValueAtTime(880, now + 0.6);
+      mainGain.gain.setValueAtTime(0.12, now);
+      mainGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      mainTone.connect(mainGain);
+      mainGain.connect(filter);
+      mainTone.start(now);
+      mainTone.stop(now + 0.7);
+
+      // Harmonic sweep
+      const sweep = audioContext.createOscillator();
+      const sweepGain = audioContext.createGain();
+      sweep.type = 'triangle';
+      sweep.frequency.setValueAtTime(330, now);
+      sweep.frequency.exponentialRampToValueAtTime(660, now + 0.5);
+      sweepGain.gain.setValueAtTime(0.08, now);
+      sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      sweep.connect(sweepGain);
+      sweepGain.connect(filter);
+      sweep.start(now);
+      sweep.stop(now + 0.5);
+
+      // Confirmation "ding" at the end
+      setTimeout(function() {
+        if (!audioContext || audioContext.state !== 'running') return;
+        const ding = audioContext.createOscillator();
+        const dingGain = audioContext.createGain();
+        ding.type = 'sine';
+        ding.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+        dingGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+        dingGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+        ding.connect(dingGain);
+        dingGain.connect(audioContext.destination);
+        ding.start(audioContext.currentTime);
+        ding.stop(audioContext.currentTime + 0.3);
+      }, 300);
+
+    } catch (e) {
+      console.log('Error playing sound:', e);
+    }
+  }
+
+  // Vibrate on mobile (if supported)
+  function vibrate(pattern) {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  }
+
+  // Typewriter effect for messages
+  function typewriterEffect(element, text, callback) {
+    const escaped = escapeHtml(text);
+    element.innerHTML = '';
+    element.style.opacity = '1';
+    
+    let i = 0;
+    const speed = 30; // ms per character
+    
+    function type() {
+      if (i < escaped.length) {
+        // Handle HTML entities
+        if (escaped[i] === '&') {
+          const endEntity = escaped.indexOf(';', i);
+          if (endEntity !== -1) {
+            element.innerHTML += escaped.substring(i, endEntity + 1);
+            i = endEntity + 1;
+          } else {
+            element.innerHTML += escaped[i];
+            i++;
+          }
+        } else {
+          element.innerHTML += escaped[i];
+          i++;
+        }
+        setTimeout(type, speed);
+      } else if (callback) {
+        callback();
+      }
+    }
+    
+    type();
+  }
+
+  // Personal stats management
+  function getPersonalStats() {
+    const stored = localStorage.getItem('echo_personal_stats');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        return { sent: 0, received: 0 };
+      }
+    }
+    return { sent: 0, received: 0 };
+  }
+
+  function updatePersonalStats(type) {
+    const stats = getPersonalStats();
+    if (type === 'sent') {
+      stats.sent++;
+    } else if (type === 'received') {
+      stats.received++;
+    }
+    localStorage.setItem('echo_personal_stats', JSON.stringify(stats));
+    displayPersonalStats();
+  }
+
+  function displayPersonalStats() {
+    const stats = getPersonalStats();
+    const el = document.getElementById('personal-stats');
+    if (el) {
+      const t = translations[currentLang];
+      el.textContent = stats.sent + ' ' + t.statsSent + ' · ' + stats.received + ' ' + t.statsReceived;
+    }
+  }
+
+  // Translations
+  const translations = {
+    en: {
+      subtitle: 'Anonymous messages through the void',
+      homeIntro: 'Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.',
+      sendSignal: 'Send a Signal',
+      receiveSignal: 'Receive a Signal',
+      signalsAdrift: 'signals adrift',
+      transmitTitle: 'Transmit to the void',
+      placeholder: 'What do you want to transmit to the universe?',
+      transmit: 'Transmit',
+      back: '← Back',
+      listenTitle: 'Listen to the void',
+      receiveIntro: 'Discover a signal from a stranger.',
+      receiveBtn: 'Receive a signal',
+      signalFrom: 'Signal from a stranger',
+      report: 'Report',
+      receiveAnother: 'Receive another',
+      sendAnother: 'Send a signal',
+      footer: 'Somewhere, someone is listening',
+      transmitted: 'Signal transmitted to the cosmos',
+      from: 'From',
+      castAdrift: 'Cast adrift on',
+      statsSent: 'sent',
+      statsReceived: 'received',
+      noSignals: 'No signals detected yet. Be the first to transmit.',
+      seenAll: 'You have seen all signals. Come back later for new transmissions.',
+      yourSignalTransmitted: 'Your signal was transmitted. Now listen to the void.',
+      reportSuccess: 'Report submitted. Thank you.',
+      alreadyReported: 'Already reported'
+    },
+    fr: {
+      subtitle: 'Messages anonymes à travers le vide',
+      homeIntro: 'Lancez un signal dans le cosmos. Découvrez des messages d\'autres voyageurs. Anonyme. Intemporel. Humain.',
+      sendSignal: 'Envoyer un Signal',
+      receiveSignal: 'Recevoir un Signal',
+      signalsAdrift: 'signaux à la dérive',
+      transmitTitle: 'Transmettre au vide',
+      placeholder: 'Que voulez-vous transmettre à l\'univers ?',
+      transmit: 'Transmettre',
+      back: '← Retour',
+      listenTitle: 'Écouter le vide',
+      receiveIntro: 'Découvrez un signal d\'un inconnu.',
+      receiveBtn: 'Recevoir un signal',
+      signalFrom: 'Signal d\'un inconnu',
+      report: 'Signaler',
+      receiveAnother: 'Recevoir un autre',
+      sendAnother: 'Envoyer un signal',
+      footer: 'Quelque part, quelqu\'un écoute',
+      transmitted: 'Signal transmis dans le cosmos',
+      from: 'De',
+      castAdrift: 'Envoyé le',
+      statsSent: 'envoyés',
+      statsReceived: 'reçus',
+      noSignals: 'Aucun signal détecté. Soyez le premier à transmettre.',
+      seenAll: 'Vous avez vu tous les signaux. Revenez plus tard.',
+      yourSignalTransmitted: 'Votre signal a été transmis. Maintenant, écoutez le vide.',
+      reportSuccess: 'Signalement envoyé. Merci.',
+      alreadyReported: 'Déjà signalé'
+    }
+  };
+
+  let currentLang = 'en';
+
+  // Apply language to UI
+  function applyLanguage(lang) {
+    currentLang = lang;
+    const t = translations[lang];
+    
+    // Update all translatable elements
+    const subtitle = document.querySelector('.subtitle');
+    if (subtitle) subtitle.textContent = t.subtitle;
+    
+    const homeIntro = document.querySelector('.home-intro');
+    if (homeIntro) homeIntro.textContent = t.homeIntro;
+    
+    const btnGoSend = document.getElementById('btn-go-send');
+    if (btnGoSend) btnGoSend.textContent = t.sendSignal;
+    
+    const btnGoReceive = document.getElementById('btn-go-receive');
+    if (btnGoReceive) btnGoReceive.textContent = t.receiveSignal;
+    
+    const transmitTitle = document.querySelector('#section-send .section-title');
+    if (transmitTitle) transmitTitle.textContent = t.transmitTitle;
+    
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) messageInput.placeholder = t.placeholder;
+    
+    const btnSend = document.getElementById('btn-send');
+    if (btnSend) btnSend.textContent = t.transmit;
+    
+    const btnBackSend = document.getElementById('btn-back-send');
+    if (btnBackSend) btnBackSend.textContent = t.back;
+    
+    const listenTitle = document.querySelector('#section-receive .section-title');
+    if (listenTitle) listenTitle.textContent = t.listenTitle;
+    
+    const receiveIntro = document.getElementById('receive-intro');
+    if (receiveIntro && !receiveIntro.classList.contains('received')) {
+      receiveIntro.textContent = t.receiveIntro;
+    }
+    
+    const btnReceive = document.getElementById('btn-receive');
+    if (btnReceive) btnReceive.textContent = t.receiveBtn;
+    
+    const messageLabel = document.querySelector('.message-label');
+    if (messageLabel) messageLabel.textContent = t.signalFrom;
+    
+    const btnReport = document.getElementById('btn-report');
+    if (btnReport && !btnReport.classList.contains('reported')) {
+      btnReport.textContent = t.report;
+    }
+    
+    const btnAnother = document.getElementById('btn-another');
+    if (btnAnother) btnAnother.textContent = t.receiveAnother;
+    
+    const btnNewSignal = document.getElementById('btn-new-signal');
+    if (btnNewSignal) btnNewSignal.textContent = t.sendAnother;
+    
+    const btnBackReceive = document.getElementById('btn-back-receive');
+    if (btnBackReceive) btnBackReceive.textContent = t.back;
+    
+    const footer = document.querySelector('.footer');
+    if (footer) footer.textContent = t.footer;
+    
+    // Update stats display
+    displayPersonalStats();
+    loadStats();
+    
+    // Save preference
+    localStorage.setItem('echo_lang', lang);
+  }
+
+  // Theme management
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('echo_theme', theme);
+    
+    // Update theme-color meta tag
+    const themeColors = {
+      cosmos: '#0a0a12',
+      ocean: '#041c24',
+      aurora: '#0a0512'
+    };
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', themeColors[theme] || themeColors.cosmos);
+    }
+  }
+
   // Load state from sessionStorage
   function loadState() {
     const stored = sessionStorage.getItem('echo_state');
@@ -286,7 +576,9 @@
   function formatDate(dateString) {
     const date = new Date(dateString);
     const options = { day: 'numeric', month: 'long', year: 'numeric' };
-    return 'Transmitted on ' + date.toLocaleDateString('en-US', options);
+    const t = translations[currentLang];
+    const locale = currentLang === 'fr' ? 'fr-FR' : 'en-US';
+    return t.castAdrift + ' ' + date.toLocaleDateString(locale, options);
   }
 
   // Load stats
@@ -295,7 +587,8 @@
       const response = await fetch('/api/stats');
       const data = await response.json();
       if (elements.homeStats) {
-        elements.homeStats.textContent = data.total + ' signals adrift';
+        const t = translations[currentLang];
+        elements.homeStats.textContent = data.total + ' ' + t.signalsAdrift;
       }
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -356,20 +649,23 @@
         currentMessageId = data.id;
         saveState();
 
-        // Play sound
+        // Play sound and vibrate
         playReceiveSound();
+        vibrate([50, 30, 50]); // Short double vibration
+        updatePersonalStats('received');
 
         // Prepare the receive section
         if (elements.receiveIntro) {
           elements.receiveIntro.textContent = 'Someone, somewhere, sent this message into the void.';
         }
         if (elements.messageContent) {
-          elements.messageContent.innerHTML = escapeHtml(data.content);
+          typewriterEffect(elements.messageContent, data.content);
         }
         if (elements.messageDate) {
           let dateText = formatDate(data.created_at);
           if (data.country) {
-            dateText = 'From ' + data.country + ' · ' + dateText;
+            const t = translations[currentLang];
+            dateText = t.from + ' ' + data.country + ' · ' + dateText;
           }
           elements.messageDate.textContent = dateText;
         }
@@ -439,19 +735,22 @@
         currentMessageId = data.id;
         saveState();
 
-        // Play sound
+        // Play sound and vibrate
         playReceiveSound();
+        vibrate([50, 30, 50]);
+        updatePersonalStats('received');
 
         // Small delay for animation reset
         setTimeout(function() {
-          // Display message
+          // Display message with typewriter effect
           if (elements.messageContent) {
-            elements.messageContent.innerHTML = escapeHtml(data.content);
+            typewriterEffect(elements.messageContent, data.content);
           }
           if (elements.messageDate) {
             let dateText = formatDate(data.created_at);
             if (data.country) {
-              dateText = 'From ' + data.country + ' · ' + dateText;
+              const t = translations[currentLang];
+              dateText = t.from + ' ' + data.country + ' · ' + dateText;
             }
             elements.messageDate.textContent = dateText;
           }
@@ -566,6 +865,8 @@
         hasSent = true;
         saveState();
         loadStats();
+        updatePersonalStats('sent');
+        playSendSound();
         // Update intro text after sending
         if (elements.receiveIntro) {
           elements.receiveIntro.textContent = 'Your signal was transmitted. Now listen to the void.';
@@ -638,6 +939,22 @@
 
   // Bind event listeners
   function bindEvents() {
+    // Theme select
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+      themeSelect.addEventListener('change', function() {
+        applyTheme(this.value);
+      });
+    }
+
+    // Language select
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) {
+      langSelect.addEventListener('change', function() {
+        applyLanguage(this.value);
+      });
+    }
+
     // Sound toggle
     if (elements.soundToggle) {
       elements.soundToggle.addEventListener('click', handleSoundToggle);
@@ -760,12 +1077,27 @@
   // Initialize application
   function init() {
     cacheElements();
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('echo_theme') || 'cosmos';
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) themeSelect.value = savedTheme;
+    applyTheme(savedTheme);
+    
+    // Load saved language
+    const savedLang = localStorage.getItem('echo_lang') || 
+      (navigator.language.startsWith('fr') ? 'fr' : 'en');
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) langSelect.value = savedLang;
+    applyLanguage(savedLang);
+    
     bindEvents();
     generateStars();
     scheduleShootingStar();
     scheduleSatellites();
     loadStats();
     loadState();
+    displayPersonalStats();
     registerServiceWorker();
 
     // Always start at home section

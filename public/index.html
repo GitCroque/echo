@@ -24,7 +24,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    :root {
+    /* Theme: Cosmos (default) */
+    :root, [data-theme="cosmos"] {
       --glass-bg: rgba(255, 255, 255, 0.08);
       --glass-border: rgba(255, 255, 255, 0.15);
       --glass-highlight: rgba(255, 255, 255, 0.25);
@@ -35,6 +36,41 @@
       --accent-pink: rgba(219, 112, 147, 0.2);
       --text-primary: #f0f0f5;
       --text-secondary: rgba(240, 240, 245, 0.7);
+      --bg-base: #0a0a12;
+      --bg-gradient: linear-gradient(180deg, #0a0a12 0%, #12121f 50%, #0f0f1a 100%);
+      --star-color: #ffffff;
+    }
+
+    /* Theme: Ocean */
+    [data-theme="ocean"] {
+      --glass-bg: rgba(255, 255, 255, 0.06);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-highlight: rgba(255, 255, 255, 0.2);
+      --glass-shadow: rgba(0, 0, 0, 0.4);
+      --accent-purple: rgba(0, 105, 148, 0.5);
+      --accent-blue: rgba(0, 168, 204, 0.4);
+      --accent-pink: rgba(0, 200, 180, 0.2);
+      --text-primary: #e8f4f8;
+      --text-secondary: rgba(232, 244, 248, 0.7);
+      --bg-base: #041c24;
+      --bg-gradient: linear-gradient(180deg, #041c24 0%, #063545 50%, #042a35 100%);
+      --star-color: #a8d8e8;
+    }
+
+    /* Theme: Aurora */
+    [data-theme="aurora"] {
+      --glass-bg: rgba(255, 255, 255, 0.07);
+      --glass-border: rgba(255, 255, 255, 0.18);
+      --glass-highlight: rgba(255, 255, 255, 0.3);
+      --glass-shadow: rgba(0, 0, 0, 0.25);
+      --accent-purple: rgba(138, 43, 226, 0.4);
+      --accent-blue: rgba(0, 255, 127, 0.25);
+      --accent-pink: rgba(255, 20, 147, 0.2);
+      --text-primary: #f5f0ff;
+      --text-secondary: rgba(245, 240, 255, 0.75);
+      --bg-base: #0a0512;
+      --bg-gradient: linear-gradient(180deg, #0a0512 0%, #150a25 50%, #0d0815 100%);
+      --star-color: #e0d0ff;
     }
 
     * {
@@ -44,7 +80,7 @@
     }
 
     html {
-      background: #0a0a12;
+      background: var(--bg-base);
     }
 
     body {
@@ -54,14 +90,15 @@
         radial-gradient(ellipse at 20% 20%, var(--accent-purple) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 80%, var(--accent-blue) 0%, transparent 50%),
         radial-gradient(ellipse at 50% 50%, var(--accent-pink) 0%, transparent 60%),
-        linear-gradient(180deg, #0a0a12 0%, #12121f 50%, #0f0f1a 100%);
-      background-color: #0a0a12;
+        var(--bg-gradient);
+      background-color: var(--bg-base);
       color: var(--text-primary);
       font-family: 'Cormorant Garamond', serif;
       overflow-x: hidden;
       position: relative;
       /* Extend background under status bar */
       padding-top: env(safe-area-inset-top);
+      transition: background 0.5s ease;
     }
 
     /* Stars background - multiple layers for depth */
@@ -98,7 +135,7 @@
 
     .star {
       position: absolute;
-      background: #ffffff;
+      background: var(--star-color);
       border-radius: 50%;
       animation: twinkle var(--duration) ease-in-out infinite;
       animation-delay: var(--delay);
@@ -639,8 +676,46 @@
       padding-top: 1rem;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.5rem;
       z-index: 10;
+    }
+
+    /* Mini select for theme/language */
+    .select-mini {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.3s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .select-mini:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--glass-highlight);
+    }
+
+    .select-mini option {
+      background: #1a1a2e;
+      color: var(--text-primary);
+    }
+
+    /* Personal stats */
+    .personal-stats {
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      opacity: 0.5;
     }
 
     /* Sound toggle - Glass Circle */
@@ -786,8 +861,17 @@
     <div class="stars stars-layer-3" id="stars-layer-3"></div>
   </div>
 
-  <!-- Top bar with sound toggle -->
+  <!-- Top bar with controls -->
   <div class="top-bar">
+    <select class="select-mini" id="theme-select" title="Theme">
+      <option value="cosmos">🌌 Cosmos</option>
+      <option value="ocean">🌊 Ocean</option>
+      <option value="aurora">🌈 Aurora</option>
+    </select>
+    <select class="select-mini" id="lang-select" title="Language">
+      <option value="en">EN</option>
+      <option value="fr">FR</option>
+    </select>
     <button class="sound-toggle" id="sound-toggle" title="Toggle sound">
       <svg id="sound-icon-on" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
@@ -814,6 +898,7 @@
           <button class="btn-link" id="btn-go-receive">Receive a Signal</button>
         </div>
         <p class="home-stats" id="home-stats"></p>
+        <p class="personal-stats" id="personal-stats"></p>
       </div>
 
       <!-- Send Section -->
@@ -865,6 +950,6 @@
   <div class="toast" id="toast"></div>
 
   <!-- Application JavaScript -->
-  <script src="/app.js?v=16"></script>
+  <script src="/app.js?v=17"></script>
 </body>
 </html>

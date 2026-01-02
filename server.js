@@ -167,6 +167,12 @@ app.post('/api/message', rateLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Message cannot exceed 140 characters' });
   }
 
+  // Filter out URLs and links
+  const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|\.co|\.app|\.dev|\.xyz|t\.me|bit\.ly|goo\.gl)/i;
+  if (urlPattern.test(trimmedContent)) {
+    return res.status(400).json({ error: 'Links are not allowed in signals' });
+  }
+
   try {
     // Get country from IP (async, don't block if it fails)
     const ip = req.ip || req.connection.remoteAddress;
