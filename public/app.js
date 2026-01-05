@@ -402,7 +402,7 @@
     const themeColors = {
       cosmos: '#0a0a12',
       ocean: '#041c24',
-      aurora: '#0a0512'
+      aurora: '#020a08'
     };
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
