@@ -7,6 +7,19 @@
   <meta name="description" content="Anonymous messages through the void - Send and receive anonymous messages from strangers">
   <title>ECHO - Anonymous messages through the void</title>
 
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sendecho.app/">
+  <meta property="og:title" content="ECHO - Anonymous messages through the void">
+  <meta property="og:description" content="Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.">
+  <meta property="og:image" content="https://sendecho.app/icon-512.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="ECHO - Anonymous messages through the void">
+  <meta name="twitter:description" content="Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.">
+  <meta name="twitter:image" content="https://sendecho.app/icon-512.png">
+
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
@@ -119,6 +132,7 @@
       left: -50%;
       width: 200%;
       height: 200%;
+      contain: strict;
     }
 
     .stars-layer-1 { animation: drift 80s linear infinite; }
@@ -139,6 +153,7 @@
       border-radius: 50%;
       animation: twinkle var(--duration) ease-in-out infinite;
       animation-delay: var(--delay);
+      will-change: transform, opacity;
     }
 
     .star.bright {
@@ -949,7 +964,7 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <!-- Application JavaScript -->
+  <!-- Application JavaScript — keep ?v= in sync with APP_VERSION in sw.js -->
   <script src="/app.js?v=18"></script>
 </body>
 </html>

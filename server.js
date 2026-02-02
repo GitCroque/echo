@@ -33,48 +33,63 @@ app.disable('x-powered-by');
 app.use(compression());
 
 // Rate limiting configuration
-const RATE_LIMIT_WINDOW = 2 * 60 * 1000; // 2 minutes
-const RATE_LIMIT_MAX = 5; // 5 messages per window
-const rateLimitMap = new Map();
+const rateLimitConfigs = {
+  write: { window: 2 * 60 * 1000, max: 5 },   // 5 per 2 min (send messages)
+  read: { window: 60 * 1000, max: 30 },         // 30 per min (receive/report)
+};
+const rateLimitMaps = {
+  write: new Map(),
+  read: new Map(),
+};
 
 // Clean up old rate limit entries every minute
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, data] of rateLimitMap.entries()) {
-    if (now - data.windowStart > RATE_LIMIT_WINDOW) {
-      rateLimitMap.delete(ip);
+  for (const [type, map] of Object.entries(rateLimitMaps)) {
+    const window = rateLimitConfigs[type].window;
+    for (const [ip, data] of map.entries()) {
+      if (now - data.windowStart > window) {
+        map.delete(ip);
+      }
     }
   }
 }, 60000);
 
-// Rate limiter middleware
-function rateLimiter(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
+// Rate limiter middleware factory
+function createRateLimiter(type) {
+  const config = rateLimitConfigs[type];
+  const map = rateLimitMaps[type];
 
-  if (!rateLimitMap.has(ip)) {
-    rateLimitMap.set(ip, { count: 1, windowStart: now });
-    return next();
-  }
+  return function(req, res, next) {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
 
-  const data = rateLimitMap.get(ip);
+    if (!map.has(ip)) {
+      map.set(ip, { count: 1, windowStart: now });
+      return next();
+    }
 
-  if (now - data.windowStart > RATE_LIMIT_WINDOW) {
-    // Reset window
-    rateLimitMap.set(ip, { count: 1, windowStart: now });
-    return next();
-  }
+    const data = map.get(ip);
 
-  if (data.count >= RATE_LIMIT_MAX) {
-    const waitTime = Math.ceil((RATE_LIMIT_WINDOW - (now - data.windowStart)) / 1000);
-    return res.status(429).json({
-      error: `Too many signals. Please wait ${waitTime} seconds before transmitting again.`
-    });
-  }
+    if (now - data.windowStart > config.window) {
+      map.set(ip, { count: 1, windowStart: now });
+      return next();
+    }
 
-  data.count++;
-  next();
+    if (data.count >= config.max) {
+      const waitTime = Math.ceil((config.window - (now - data.windowStart)) / 1000);
+      return res.status(429).json({
+        error: `Too many requests. Please wait ${waitTime} seconds.`
+      });
+    }
+
+    data.count++;
+    next();
+  };
 }
+
+const rateLimiterWrite = createRateLimiter('write');
+const rateLimiterRead = createRateLimiter('read');
 
 // Ensure data directory exists
 const dataDir = '/data';
@@ -113,6 +128,40 @@ db.exec(`
   )
 `);
 
+// Index for faster report lookups
+db.exec('CREATE INDEX IF NOT EXISTS idx_reports_message_id ON reports(message_id)');
+
+// Auto-moderation threshold
+const REPORT_THRESHOLD = 3;
+
+// Pre-compiled prepared statements for performance
+const stmts = {
+  insertMessage: db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)'),
+  getRandomMessage: db.prepare('SELECT id, content, country, created_at FROM messages LIMIT 1 OFFSET ?'),
+  getRandomMessageExcluding: null, // Built dynamically due to variable IN clause
+  countMessages: db.prepare('SELECT COUNT(*) as total FROM messages'),
+  countMessagesExcluding: null, // Built dynamically
+  checkMessage: db.prepare('SELECT id FROM messages WHERE id = ?'),
+  insertReport: db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)'),
+  countReports: db.prepare('SELECT COUNT(*) as count FROM reports WHERE message_id = ?'),
+  deleteReports: db.prepare('DELETE FROM reports WHERE message_id = ?'),
+  deleteMessage: db.prepare('DELETE FROM messages WHERE id = ?'),
+  healthCheck: db.prepare('SELECT 1'),
+};
+
+// Atomic auto-moderation transaction
+const autoModerate = db.transaction((messageId, reason) => {
+  stmts.insertReport.run(messageId, reason);
+  const { count } = stmts.countReports.get(messageId);
+  if (count >= REPORT_THRESHOLD) {
+    stmts.deleteReports.run(messageId);
+    stmts.deleteMessage.run(messageId);
+    console.log(`Auto-moderation: Message ${messageId} deleted (${count} reports)`);
+    return { deleted: true, count };
+  }
+  return { deleted: false, count };
+});
+
 // Middleware
 app.use(express.json({ limit: '10kb' }));  // Limit body size to prevent DoS
 app.use(express.static('public', {
@@ -150,7 +199,7 @@ async function getCountryFromIP(ip) {
 }
 
 // POST /api/message - Save a new message (with rate limiting)
-app.post('/api/message', rateLimiter, async (req, res) => {
+app.post('/api/message', rateLimiterWrite, async (req, res) => {
   const { content } = req.body;
 
   if (!content || typeof content !== 'string') {
@@ -168,7 +217,7 @@ app.post('/api/message', rateLimiter, async (req, res) => {
   }
 
   // Filter out URLs and links
-  const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|\.co|\.app|\.dev|\.xyz|t\.me|bit\.ly|goo\.gl)/i;
+  const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|\.co|\.app|\.dev|\.xyz|\.fr|\.de|\.uk|\.ru|\.cn|\.es|\.it|\.nl|\.be|\.ch|\.ca|\.au|\.info|\.biz|\.me|\.tv|\.cc|t\.me|bit\.ly|goo\.gl|tinyurl|shorturl)/i;
   if (urlPattern.test(trimmedContent)) {
     return res.status(400).json({ error: 'Links are not allowed in signals' });
   }
@@ -177,9 +226,8 @@ app.post('/api/message', rateLimiter, async (req, res) => {
     // Get country from IP (async, don't block if it fails)
     const ip = req.ip || req.connection.remoteAddress;
     const country = await getCountryFromIP(ip);
-    
-    const stmt = db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)');
-    const result = stmt.run(trimmedContent, country);
+
+    const result = stmts.insertMessage.run(trimmedContent, country);
     res.status(201).json({
       success: true,
       id: result.lastInsertRowid
@@ -191,7 +239,7 @@ app.post('/api/message', rateLimiter, async (req, res) => {
 });
 
 // POST /api/message/random - Get a random message (excluding already seen)
-app.post('/api/message/random', (req, res) => {
+app.post('/api/message/random', rateLimiterRead, (req, res) => {
   const { exclude = [] } = req.body;
 
   // Validate exclude array
@@ -200,34 +248,38 @@ app.post('/api/message/random', (req, res) => {
     : [];
 
   try {
-    let query, params;
+    let message;
 
     if (excludeIds.length > 0) {
+      // Count eligible messages then pick random offset
       const placeholders = excludeIds.map(() => '?').join(',');
-      query = `SELECT id, content, country, created_at FROM messages WHERE id NOT IN (${placeholders}) ORDER BY RANDOM() LIMIT 1`;
-      params = excludeIds;
-    } else {
-      query = 'SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1';
-      params = [];
-    }
-
-    const stmt = db.prepare(query);
-    const message = stmt.get(...params);
-
-    if (!message) {
-      // Check if there are any messages at all
-      const countStmt = db.prepare('SELECT COUNT(*) as total FROM messages');
-      const { total } = countStmt.get();
+      const countStmt = db.prepare(`SELECT COUNT(*) as total FROM messages WHERE id NOT IN (${placeholders})`);
+      const { total } = countStmt.get(...excludeIds);
 
       if (total === 0) {
-        return res.status(404).json({
-          error: 'No signals detected yet. Be the first to transmit.'
-        });
-      } else {
-        return res.status(404).json({
-          error: 'You have seen all signals. Come back later for new transmissions.'
-        });
+        const { total: allTotal } = stmts.countMessages.get();
+        if (allTotal === 0) {
+          return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
+        }
+        return res.status(404).json({ error: 'You have seen all signals. Come back later for new transmissions.' });
       }
+
+      const offset = Math.floor(Math.random() * total);
+      const selectStmt = db.prepare(`SELECT id, content, country, created_at FROM messages WHERE id NOT IN (${placeholders}) LIMIT 1 OFFSET ?`);
+      message = selectStmt.get(...excludeIds, offset);
+    } else {
+      const { total } = stmts.countMessages.get();
+
+      if (total === 0) {
+        return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
+      }
+
+      const offset = Math.floor(Math.random() * total);
+      message = stmts.getRandomMessage.get(offset);
+    }
+
+    if (!message) {
+      return res.status(404).json({ error: 'Error receiving signal. Try again.' });
     }
 
     res.json({
@@ -242,11 +294,8 @@ app.post('/api/message/random', (req, res) => {
   }
 });
 
-// Auto-moderation threshold
-const REPORT_THRESHOLD = 3;
-
 // POST /api/report - Report a message
-app.post('/api/report', (req, res) => {
+app.post('/api/report', rateLimiterRead, (req, res) => {
   const { messageId, reason } = req.body;
 
   if (!messageId || !Number.isInteger(messageId) || messageId <= 0) {
@@ -255,29 +304,14 @@ app.post('/api/report', (req, res) => {
 
   try {
     // Check if message exists
-    const checkStmt = db.prepare('SELECT id FROM messages WHERE id = ?');
-    const message = checkStmt.get(messageId);
+    const message = stmts.checkMessage.get(messageId);
 
     if (!message) {
       return res.status(404).json({ error: 'Message not found' });
     }
 
-    // Insert report
-    const insertStmt = db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)');
-    insertStmt.run(messageId, reason || null);
-
-    // Check report count for auto-moderation
-    const countStmt = db.prepare('SELECT COUNT(*) as count FROM reports WHERE message_id = ?');
-    const { count } = countStmt.get(messageId);
-
-    if (count >= REPORT_THRESHOLD) {
-      // Auto-delete message and its reports
-      const deleteReportsStmt = db.prepare('DELETE FROM reports WHERE message_id = ?');
-      const deleteMessageStmt = db.prepare('DELETE FROM messages WHERE id = ?');
-      deleteReportsStmt.run(messageId);
-      deleteMessageStmt.run(messageId);
-      console.log(`🛡️ Auto-moderation: Message ${messageId} deleted (${count} reports)`);
-    }
+    // Atomic: insert report + auto-moderate if threshold reached
+    autoModerate(messageId, reason || null);
 
     res.status(201).json({
       success: true,
@@ -292,8 +326,7 @@ app.post('/api/report', (req, res) => {
 // GET /api/stats - Get total message count
 app.get('/api/stats', (req, res) => {
   try {
-    const stmt = db.prepare('SELECT COUNT(*) as total FROM messages');
-    const result = stmt.get();
+    const result = stmts.countMessages.get();
     res.json({ total: result.total });
   } catch (error) {
     console.error('Error fetching stats:', error);
@@ -305,8 +338,7 @@ app.get('/api/stats', (req, res) => {
 app.get('/health', (req, res) => {
   try {
     // Check database connectivity
-    const stmt = db.prepare('SELECT 1');
-    stmt.get();
+    stmts.healthCheck.get();
     
     res.status(200).json({
       status: 'healthy',
@@ -340,13 +372,13 @@ app.listen(PORT, () => {
   console.log(`📡 Database: ${dbPath}`);
 });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  db.close();
+// Graceful shutdown with timeout
+function shutdown() {
+  const forceExit = setTimeout(() => process.exit(1), 5000);
+  forceExit.unref();
+  try { db.close(); } catch (e) { /* ignore */ }
   process.exit(0);
-});
+}
 
-process.on('SIGTERM', () => {
-  db.close();
-  process.exit(0);
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

@@ -289,7 +289,9 @@
       seenAll: 'You have seen all signals. Come back later for new transmissions.',
       yourSignalTransmitted: 'Your signal was transmitted. Now listen to the void.',
       reportSuccess: 'Report submitted. Thank you.',
-      alreadyReported: 'Already reported'
+      alreadyReported: 'Already reported',
+      reported: 'Reported',
+      someoneMessage: 'Someone, somewhere, sent this message into the void.'
     },
     fr: {
       subtitle: 'Messages anonymes à travers le vide',
@@ -318,7 +320,9 @@
       seenAll: 'Vous avez vu tous les signaux. Revenez plus tard.',
       yourSignalTransmitted: 'Votre signal a été transmis. Maintenant, écoutez le vide.',
       reportSuccess: 'Signalement envoyé. Merci.',
-      alreadyReported: 'Déjà signalé'
+      alreadyReported: 'Déjà signalé',
+      reported: 'Signalé',
+      someoneMessage: 'Quelqu\'un, quelque part, a envoyé ce message dans le vide.'
     }
   };
 
@@ -548,28 +552,44 @@
     }, duration * 1000 + 100);
   }
 
+  // Track animation timers so we can pause when tab is hidden
+  let shootingStarTimer = null;
+  let satelliteTimer = null;
+  let animationsPaused = false;
+
   // Schedule random shooting stars
   function scheduleShootingStar() {
     function spawn() {
+      if (animationsPaused) return;
       createShootingStar();
-      // Random interval between 2-6 seconds
       const nextDelay = 2000 + Math.random() * 4000;
-      setTimeout(spawn, nextDelay);
+      shootingStarTimer = setTimeout(spawn, nextDelay);
     }
-    // First one after 1 second
-    setTimeout(spawn, 1000);
+    shootingStarTimer = setTimeout(spawn, 1000);
   }
 
   // Schedule satellites
   function scheduleSatellites() {
     function spawn() {
+      if (animationsPaused) return;
       createSatellite();
-      // Random interval between 8-20 seconds (less frequent than shooting stars)
       const nextDelay = 8000 + Math.random() * 12000;
-      setTimeout(spawn, nextDelay);
+      satelliteTimer = setTimeout(spawn, nextDelay);
     }
-    // First one after 3 seconds
-    setTimeout(spawn, 3000);
+    satelliteTimer = setTimeout(spawn, 3000);
+  }
+
+  // Pause/resume animations based on tab visibility
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      animationsPaused = true;
+      clearTimeout(shootingStarTimer);
+      clearTimeout(satelliteTimer);
+    } else {
+      animationsPaused = false;
+      scheduleShootingStar();
+      scheduleSatellites();
+    }
   }
 
   // Format date
@@ -625,8 +645,9 @@
     }
   }
 
-  // Receive message directly from home page
-  async function receiveMessageDirect(btn) {
+  // Core function to fetch and display a random message
+  async function fetchAndDisplayMessage(btn, options) {
+    const { navigateToReceive, animationDelay } = options || {};
     const originalText = btn.textContent;
     btn.innerHTML = '<span class="loading"></span>';
     btn.disabled = true;
@@ -639,162 +660,73 @@
       });
 
       const data = await response.json();
+      const t = translations[currentLang];
 
-      if (response.ok) {
-        // Add to seen messages
-        seenMessageIds.push(data.id);
-        if (seenMessageIds.length > 100) {
-          seenMessageIds.shift();
-        }
-        currentMessageId = data.id;
-        saveState();
-
-        // Play sound and vibrate
-        playReceiveSound();
-        vibrate([50, 30, 50]); // Short double vibration
-        updatePersonalStats('received');
-
-        // Prepare the receive section
-        if (elements.receiveIntro) {
-          elements.receiveIntro.textContent = 'Someone, somewhere, sent this message into the void.';
-        }
-        if (elements.messageContent) {
-          typewriterEffect(elements.messageContent, data.content);
-        }
-        if (elements.messageDate) {
-          let dateText = formatDate(data.created_at);
-          if (data.country) {
-            const t = translations[currentLang];
-            dateText = t.from + ' ' + data.country + ' · ' + dateText;
-          }
-          elements.messageDate.textContent = dateText;
-        }
-        if (elements.messageDisplay) {
-          elements.messageDisplay.classList.add('active');
-        }
-        if (elements.messageActions) {
-          elements.messageActions.style.display = 'flex';
-        }
-        if (elements.btnReport) {
-          elements.btnReport.classList.remove('reported');
-          elements.btnReport.textContent = 'Report';
-          elements.btnReport.disabled = false;
-        }
-        if (elements.btnReceive) {
-          elements.btnReceive.style.display = 'none';
-        }
-        if (elements.btnAnother) {
-          elements.btnAnother.style.display = 'block';
-        }
-
-        // Navigate to receive section
-        showSection('section-receive');
-      } else {
-        showToast(data.error || 'Error receiving signal');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      showToast('Network error. Please try again.');
-    }
-
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  }
-
-  // Receive message
-  async function receiveMessage(btn) {
-    const originalText = btn.textContent;
-    btn.innerHTML = '<span class="loading"></span>';
-    btn.disabled = true;
-
-    try {
-      const response = await fetch('/api/message/random', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exclude: seenMessageIds })
-      });
-
-      const data = await response.json();
-      const messageDisplay = elements.messageDisplay;
-      const btnAnother = elements.btnAnother;
-      const btnReceive = elements.btnReceive;
-      const messageActions = elements.messageActions;
-      const btnReport = elements.btnReport;
-
-      // Reset display for animation
-      if (messageDisplay) {
-        messageDisplay.classList.remove('active');
+      // Reset display for animation if needed
+      if (animationDelay && elements.messageDisplay) {
+        elements.messageDisplay.classList.remove('active');
       }
 
       if (response.ok) {
-        // Add to seen messages (limit to 100)
+        // Track seen messages (limit to 100)
         seenMessageIds.push(data.id);
-        if (seenMessageIds.length > 100) {
-          seenMessageIds.shift();
-        }
+        if (seenMessageIds.length > 100) seenMessageIds.shift();
         currentMessageId = data.id;
         saveState();
 
-        // Play sound and vibrate
         playReceiveSound();
         vibrate([50, 30, 50]);
         updatePersonalStats('received');
 
-        // Small delay for animation reset
-        setTimeout(function() {
-          // Display message with typewriter effect
+        var showMessage = function() {
+          if (elements.receiveIntro) {
+            elements.receiveIntro.textContent = t.someoneMessage;
+          }
           if (elements.messageContent) {
             typewriterEffect(elements.messageContent, data.content);
           }
           if (elements.messageDate) {
-            let dateText = formatDate(data.created_at);
+            var dateText = formatDate(data.created_at);
             if (data.country) {
-              const t = translations[currentLang];
               dateText = t.from + ' ' + data.country + ' · ' + dateText;
             }
             elements.messageDate.textContent = dateText;
           }
-          if (messageDisplay) {
-            messageDisplay.classList.add('active');
+          if (elements.messageDisplay) elements.messageDisplay.classList.add('active');
+          if (elements.messageActions) elements.messageActions.style.display = 'flex';
+          if (elements.btnReport) {
+            elements.btnReport.classList.remove('reported');
+            elements.btnReport.textContent = t.report;
+            elements.btnReport.disabled = false;
           }
-          if (messageActions) {
-            messageActions.style.display = 'flex';
-          }
-          if (btnReport) {
-            btnReport.classList.remove('reported');
-            btnReport.textContent = 'Report';
-            btnReport.disabled = false;
-          }
+          if (elements.btnReceive) elements.btnReceive.style.display = 'none';
+          if (elements.btnAnother) elements.btnAnother.style.display = 'block';
+        };
 
-          // Show "another" button, hide initial receive button
-          if (btnReceive) {
-            btnReceive.style.display = 'none';
-          }
-          if (btnAnother) {
-            btnAnother.style.display = 'block';
-          }
-        }, 50);
+        if (animationDelay) {
+          setTimeout(showMessage, 50);
+        } else {
+          showMessage();
+        }
+
+        if (navigateToReceive) showSection('section-receive');
       } else {
-        setTimeout(function() {
+        var showError = function() {
           if (elements.messageContent) {
             elements.messageContent.innerHTML = '<span class="message-error">' + escapeHtml(data.error) + '</span>';
           }
-          if (elements.messageDate) {
-            elements.messageDate.textContent = '';
-          }
-          if (messageDisplay) {
-            messageDisplay.classList.add('active');
-          }
-          if (messageActions) {
-            messageActions.style.display = 'none';
-          }
-          if (btnReceive) {
-            btnReceive.style.display = 'none';
-          }
-          if (btnAnother) {
-            btnAnother.style.display = 'none';
-          }
-        }, 50);
+          if (elements.messageDate) elements.messageDate.textContent = '';
+          if (elements.messageDisplay) elements.messageDisplay.classList.add('active');
+          if (elements.messageActions) elements.messageActions.style.display = 'none';
+          if (elements.btnReceive) elements.btnReceive.style.display = 'none';
+          if (elements.btnAnother) elements.btnAnother.style.display = 'none';
+        };
+
+        if (animationDelay) {
+          setTimeout(showError, 50);
+        } else {
+          showToast(data.error || 'Error receiving signal');
+        }
       }
     } catch (error) {
       console.error('Error receiving message:', error);
@@ -803,6 +735,16 @@
       btn.textContent = originalText;
       btn.disabled = false;
     }
+  }
+
+  // Receive message directly from home page
+  function receiveMessageDirect(btn) {
+    return fetchAndDisplayMessage(btn, { navigateToReceive: true, animationDelay: false });
+  }
+
+  // Receive message from receive section
+  function receiveMessage(btn) {
+    return fetchAndDisplayMessage(btn, { navigateToReceive: false, animationDelay: true });
   }
 
   // Report message handler
@@ -822,7 +764,8 @@
       const data = await response.json();
 
       if (response.ok) {
-        btn.textContent = 'Reported';
+        const t = translations[currentLang];
+        btn.textContent = t.reported;
         btn.classList.add('reported');
         showToast(data.message);
       } else {
@@ -867,13 +810,14 @@
         loadStats();
         updatePersonalStats('sent');
         playSendSound();
+        const t = translations[currentLang];
         // Update intro text after sending
         if (elements.receiveIntro) {
-          elements.receiveIntro.textContent = 'Your signal was transmitted. Now listen to the void.';
+          elements.receiveIntro.textContent = t.yourSignalTransmitted;
         }
         resetReceiveSection();
         showSection('section-receive');
-        showToast('Signal transmitted to the cosmos');
+        showToast(t.transmitted);
       } else {
         showToast(data.error || 'Error sending message');
       }
@@ -892,7 +836,7 @@
     const counter = elements.charCounter;
     if (counter) {
       counter.textContent = count + ' / 140';
-      counter.classList.toggle('warning', count > 450);
+      counter.classList.toggle('warning', count >= 120);
     }
   }
 
@@ -1095,6 +1039,7 @@
     generateStars();
     scheduleShootingStar();
     scheduleSatellites();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     loadStats();
     loadState();
     displayPersonalStats();

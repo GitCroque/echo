@@ -1,17 +1,22 @@
-FROM node:20-alpine
+# Stage 1: Build native dependencies
+FROM node:20-alpine AS builder
 
-# Install build dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
-# Install dependencies
 RUN npm install --production
 
-# Copy application code
+# Stage 2: Runtime (no build tools)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy only node_modules and app code
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
 COPY server.js ./
 COPY public ./public
 
