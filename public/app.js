@@ -193,37 +193,25 @@
     }
   }
 
-  // Typewriter effect for messages
+  // Typewriter effect for messages (optimized: uses textContent to avoid DOM thrashing)
   function typewriterEffect(element, text, callback) {
-    const escaped = escapeHtml(text);
-    element.innerHTML = '';
+    element.textContent = '';
     element.style.opacity = '1';
-    
+
     let i = 0;
     const speed = 30; // ms per character
-    
+
     function type() {
-      if (i < escaped.length) {
-        // Handle HTML entities
-        if (escaped[i] === '&') {
-          const endEntity = escaped.indexOf(';', i);
-          if (endEntity !== -1) {
-            element.innerHTML += escaped.substring(i, endEntity + 1);
-            i = endEntity + 1;
-          } else {
-            element.innerHTML += escaped[i];
-            i++;
-          }
-        } else {
-          element.innerHTML += escaped[i];
-          i++;
-        }
+      if (i < text.length) {
+        // textContent is safe (no HTML parsing) and much faster than innerHTML
+        element.textContent += text[i];
+        i++;
         setTimeout(type, speed);
       } else if (callback) {
         callback();
       }
     }
-    
+
     type();
   }
 

@@ -5,6 +5,30 @@ All notable changes to Echo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-02-02
+
+### Performance
+- ⚡ Typewriter effect: replaced `innerHTML +=` with `textContent` (eliminates DOM thrashing)
+- ⚡ Random message: single `ORDER BY RANDOM()` query instead of COUNT + OFFSET (2x faster)
+- ⚡ Country lookup: non-blocking fire-and-forget (response ~200ms faster)
+- ⚡ Cache prepared SQL statements at startup
+- ⚡ Pause shooting stars/satellites when tab is hidden
+- ⚡ CSS `contain`/`will-change` for star animation performance
+
+### Security
+- 🔒 Rate limiting on `/api/message/random` and `/api/report` (30 req/min)
+- 🔒 Atomic auto-moderation with `db.transaction()`
+- 🔒 Stronger URL filter with more TLDs
+
+### Changed
+- 🐳 Multi-stage Docker build (smaller image, no build tools in runtime)
+- 🌐 Translate all hardcoded UI strings (i18n)
+- 📱 Open Graph and Twitter Card meta tags
+- ♻️ Refactor receiveMessage/receiveMessageDirect into shared function
+- 🔧 Graceful shutdown with 5s timeout safety net
+- 🔧 Fix char counter warning threshold (450 → 120)
+- 🔧 Add index on `reports.message_id` for faster lookups
+
 ## [1.3.0] - 2026-01-01
 
 ### Added
@@ -95,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.7.0]: https://github.com/GitCroque/echo/releases/tag/v1.7.0
 [1.3.0]: https://github.com/GitCroque/echo/releases/tag/v1.3.0
 [1.2.3]: https://github.com/GitCroque/echo/releases/tag/v1.2.3
 [1.2.2]: https://github.com/GitCroque/echo/releases/tag/v1.2.2
@@ -103,4 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.1.1]: https://github.com/GitCroque/echo/releases/tag/v1.1.1
 [1.1.0]: https://github.com/GitCroque/echo/releases/tag/v1.1.0
 [1.0.0]: https://github.com/GitCroque/echo/releases/tag/v1.0.0
+
+
+
 

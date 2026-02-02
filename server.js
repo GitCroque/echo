@@ -223,15 +223,27 @@ app.post('/api/message', rateLimiterWrite, async (req, res) => {
   }
 
   try {
-    // Get country from IP (async, don't block if it fails)
-    const ip = req.ip || req.connection.remoteAddress;
-    const country = await getCountryFromIP(ip);
+    // Insert message immediately without country (non-blocking)
+    const result = stmts.insertMessage.run(trimmedContent, null);
+    const messageId = result.lastInsertRowid;
 
-    const result = stmts.insertMessage.run(trimmedContent, country);
+    // Respond immediately for better UX
     res.status(201).json({
       success: true,
-      id: result.lastInsertRowid
+      id: messageId
     });
+
+    // Update country in background (fire-and-forget, don't block response)
+    const ip = req.ip || req.connection.remoteAddress;
+    getCountryFromIP(ip).then(country => {
+      if (country) {
+        try {
+          db.prepare('UPDATE messages SET country = ? WHERE id = ?').run(country, messageId);
+        } catch (e) {
+          // Silently ignore - country is optional
+        }
+      }
+    }).catch(() => {}); // Ignore errors - country lookup is non-critical
   } catch (error) {
     console.error('Error saving message:', error);
     res.status(500).json({ error: 'Error sending message' });
@@ -251,31 +263,25 @@ app.post('/api/message/random', rateLimiterRead, (req, res) => {
     let message;
 
     if (excludeIds.length > 0) {
-      // Count eligible messages then pick random offset
+      // Single query with ORDER BY RANDOM() - more efficient than COUNT + OFFSET
       const placeholders = excludeIds.map(() => '?').join(',');
-      const countStmt = db.prepare(`SELECT COUNT(*) as total FROM messages WHERE id NOT IN (${placeholders})`);
-      const { total } = countStmt.get(...excludeIds);
+      const selectStmt = db.prepare(`SELECT id, content, country, created_at FROM messages WHERE id NOT IN (${placeholders}) ORDER BY RANDOM() LIMIT 1`);
+      message = selectStmt.get(...excludeIds);
 
-      if (total === 0) {
+      if (!message) {
         const { total: allTotal } = stmts.countMessages.get();
         if (allTotal === 0) {
           return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
         }
         return res.status(404).json({ error: 'You have seen all signals. Come back later for new transmissions.' });
       }
-
-      const offset = Math.floor(Math.random() * total);
-      const selectStmt = db.prepare(`SELECT id, content, country, created_at FROM messages WHERE id NOT IN (${placeholders}) LIMIT 1 OFFSET ?`);
-      message = selectStmt.get(...excludeIds, offset);
     } else {
-      const { total } = stmts.countMessages.get();
+      // Single query with ORDER BY RANDOM() for simplicity and consistency
+      message = db.prepare('SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1').get();
 
-      if (total === 0) {
+      if (!message) {
         return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
       }
-
-      const offset = Math.floor(Math.random() * total);
-      message = stmts.getRandomMessage.get(offset);
     }
 
     if (!message) {
