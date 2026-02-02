@@ -1,8 +1,9 @@
-const CACHE_NAME = 'echo-v18';
-const APP_VERSION = '18';
+const CACHE_NAME = 'echo-v19';
+const APP_VERSION = '19';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
+  '/style.css?v=' + APP_VERSION,
   '/app.js?v=' + APP_VERSION,
   '/manifest.json',
   '/favicon.png',

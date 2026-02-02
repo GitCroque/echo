@@ -5,6 +5,24 @@ All notable changes to Echo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-02-02
+
+### Performance
+- ⚡ External CSS: extracted 28KB inline styles to `style.css` (better caching, HTML ~85% smaller)
+- ⚡ Stats API cache: 10-second client-side TTL (fewer redundant requests)
+- ⚡ Mobile optimization: 50% fewer stars on screens < 768px
+- ⚡ Database index on `messages.created_at` for faster date queries
+
+### Accessibility
+- ♿ ARIA labels on all interactive buttons
+- ♿ `aria-live` regions for dynamic content (messages, toasts, character counter)
+- ♿ Visually hidden labels for form inputs
+- ♿ Dynamic `aria-label` updates for sound toggle
+
+### Changed
+- 📦 Service Worker v19 with external CSS caching
+- ♻️ Refactored `loadStats()` with `updateStatsDisplay()` helper
+
 ## [1.7.0] - 2026-02-02
 
 ### Performance
@@ -119,6 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.8.0]: https://github.com/GitCroque/echo/releases/tag/v1.8.0
 [1.7.0]: https://github.com/GitCroque/echo/releases/tag/v1.7.0
 [1.3.0]: https://github.com/GitCroque/echo/releases/tag/v1.3.0
 [1.2.3]: https://github.com/GitCroque/echo/releases/tag/v1.2.3

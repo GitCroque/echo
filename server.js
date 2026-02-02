@@ -131,6 +131,9 @@ db.exec(`
 // Index for faster report lookups
 db.exec('CREATE INDEX IF NOT EXISTS idx_reports_message_id ON reports(message_id)');
 
+// Index for faster date-based queries
+db.exec('CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)');
+
 // Auto-moderation threshold
 const REPORT_THRESHOLD = 3;
 

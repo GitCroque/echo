@@ -12,6 +12,10 @@
   let audioContext = null;
   let audioInitialized = false;
 
+  // Stats cache (10 second TTL)
+  let statsCache = { data: null, timestamp: 0 };
+  const STATS_CACHE_TTL = 10000;
+
   // DOM Elements (cached after DOMContentLoaded)
   let elements = {};
 
@@ -444,15 +448,22 @@
     iconOn.style.display = soundEnabled ? 'block' : 'none';
     iconOff.style.display = soundEnabled ? 'none' : 'block';
     btn.classList.toggle('muted', !soundEnabled);
-    btn.title = soundEnabled ? 'Sound on (click to mute)' : 'Sound off (click to unmute)';
+
+    const label = soundEnabled ? 'Sound on (click to mute)' : 'Sound off (click to unmute)';
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
   }
 
   // Generate stars on multiple layers for depth effect
   function generateStars() {
+    // Reduce star count on mobile for better performance
+    const isMobile = window.innerWidth < 768;
+    const multiplier = isMobile ? 0.5 : 1;
+
     const layers = [
-      { id: 'stars-layer-1', count: 80, sizeRange: [1.5, 3], opacityRange: [0.6, 1], twinkleSpeed: [2, 4] },
-      { id: 'stars-layer-2', count: 120, sizeRange: [1, 2], opacityRange: [0.4, 0.8], twinkleSpeed: [3, 5] },
-      { id: 'stars-layer-3', count: 200, sizeRange: [0.5, 1.5], opacityRange: [0.2, 0.5], twinkleSpeed: [4, 7] }
+      { id: 'stars-layer-1', count: Math.floor(80 * multiplier), sizeRange: [1.5, 3], opacityRange: [0.6, 1], twinkleSpeed: [2, 4] },
+      { id: 'stars-layer-2', count: Math.floor(120 * multiplier), sizeRange: [1, 2], opacityRange: [0.4, 0.8], twinkleSpeed: [3, 5] },
+      { id: 'stars-layer-3', count: Math.floor(200 * multiplier), sizeRange: [0.5, 1.5], opacityRange: [0.2, 0.5], twinkleSpeed: [4, 7] }
     ];
 
     layers.forEach(function(layer) {
@@ -589,17 +600,33 @@
     return t.castAdrift + ' ' + date.toLocaleDateString(locale, options);
   }
 
-  // Load stats
+  // Load stats (with client-side cache)
   async function loadStats() {
+    const now = Date.now();
+
+    // Return cached data if still valid
+    if (statsCache.data && (now - statsCache.timestamp) < STATS_CACHE_TTL) {
+      updateStatsDisplay(statsCache.data);
+      return;
+    }
+
     try {
       const response = await fetch('/api/stats');
       const data = await response.json();
-      if (elements.homeStats) {
-        const t = translations[currentLang];
-        elements.homeStats.textContent = data.total + ' ' + t.signalsAdrift;
-      }
+
+      // Update cache
+      statsCache = { data: data, timestamp: now };
+      updateStatsDisplay(data);
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+  }
+
+  // Update stats display
+  function updateStatsDisplay(data) {
+    if (elements.homeStats) {
+      const t = translations[currentLang];
+      elements.homeStats.textContent = data.total + ' ' + t.signalsAdrift;
     }
   }
 

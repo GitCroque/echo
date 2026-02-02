@@ -1,6 +1,6 @@
 {
   "name": "echo",
-  "version": "1.0.0",
+  "version": "1.8.0",
   "description": "Messages anonymes à travers le vide - Bouteilles à la mer version spatiale",
   "main": "server.js",
   "scripts": {
