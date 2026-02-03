@@ -4,6 +4,9 @@
 (function() {
   'use strict';
 
+  // App version - keep in sync with sw.js
+  const APP_VERSION = '19';
+
   // State
   let seenMessageIds = [];
   let hasSent = false;
@@ -1036,6 +1039,10 @@
   // Initialize application
   function init() {
     cacheElements();
+    
+    // Display app version
+    const versionEl = document.getElementById('app-version');
+    if (versionEl) versionEl.textContent = 'v' + APP_VERSION;
     
     // Load saved theme
     const savedTheme = localStorage.getItem('echo_theme') || 'cosmos';
