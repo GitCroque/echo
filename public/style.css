@@ -582,14 +582,15 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: 50px;
   padding: 0.35rem;
-  max-width: 380px;
+  max-width: 95%;
+  width: fit-content;
   margin: 0 auto;
 }
 
 .btn-pill {
   font-family: 'Space Mono', monospace;
-  font-size: 0.9rem;
-  padding: 0.9rem 1.8rem;
+  font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+  padding: 0.9rem clamp(1rem, 3vw, 1.8rem);
   background: linear-gradient(
     135deg,
     rgba(147, 112, 219, 0.3) 0%,
@@ -619,8 +620,8 @@ body {
 
 .btn-link {
   font-family: 'Space Mono', monospace;
-  font-size: 0.9rem;
-  padding: 0.9rem 1.5rem;
+  font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+  padding: 0.9rem clamp(0.8rem, 2.5vw, 1.5rem);
   background: transparent;
   border: none;
   color: var(--text-secondary);

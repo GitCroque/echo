@@ -5,7 +5,7 @@
   'use strict';
 
   // App version - keep in sync with sw.js
-  const APP_VERSION = '21';
+  const APP_VERSION = '22';
 
   // State
   let seenMessageIds = [];
