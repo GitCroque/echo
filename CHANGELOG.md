@@ -5,6 +5,18 @@ All notable changes to Echo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-02-03
+
+### Added
+- 🌍 10 new languages: Spanish, German, Italian, Portuguese, Dutch, Russian, Japanese, Korean, Chinese (Simplified), Arabic
+- 🔄 Auto-detection of browser language for all 12 supported languages
+- 📅 Locale-aware date formatting for each language
+- ↔️ RTL (right-to-left) support for Arabic with CSS adjustments
+- 🏷️ App version now displays discreetly in footer
+
+### Changed
+- 📦 Service Worker v20 with updated cache
+
 ## [1.8.0] - 2026-02-02
 
 ### Performance
