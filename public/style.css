@@ -850,6 +850,34 @@ body {
   }
 }
 
+/* RTL support for Arabic */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .top-bar {
+  right: auto;
+  left: 1.5rem;
+}
+
+[dir="rtl"] .btn-back {
+  direction: ltr;
+}
+
+[dir="rtl"] .char-counter {
+  text-align: left;
+}
+
+[dir="rtl"] .message-actions {
+  flex-direction: row-reverse;
+}
+
+@media (max-width: 600px) {
+  [dir="rtl"] .top-bar {
+    left: 0.75rem;
+  }
+}
+
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

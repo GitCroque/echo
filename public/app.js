@@ -5,7 +5,7 @@
   'use strict';
 
   // App version - keep in sync with sw.js
-  const APP_VERSION = '19';
+  const APP_VERSION = '20';
 
   // State
   let seenMessageIds = [];
@@ -318,6 +318,316 @@
       alreadyReported: 'Déjà signalé',
       reported: 'Signalé',
       someoneMessage: 'Quelqu\'un, quelque part, a envoyé ce message dans le vide.'
+    },
+    es: {
+      subtitle: 'Mensajes anónimos a través del vacío',
+      homeIntro: 'Lanza una señal al cosmos. Descubre mensajes de otros viajeros. Anónimo. Atemporal. Humano.',
+      sendSignal: 'Enviar una Señal',
+      receiveSignal: 'Recibir una Señal',
+      signalsAdrift: 'señales a la deriva',
+      transmitTitle: 'Transmitir al vacío',
+      placeholder: '¿Qué quieres transmitir al universo?',
+      transmit: 'Transmitir',
+      back: '← Volver',
+      listenTitle: 'Escuchar el vacío',
+      receiveIntro: 'Descubre una señal de un desconocido.',
+      receiveBtn: 'Recibir una señal',
+      signalFrom: 'Señal de un desconocido',
+      report: 'Reportar',
+      receiveAnother: 'Recibir otra',
+      sendAnother: 'Enviar una señal',
+      footer: 'En algún lugar, alguien está escuchando',
+      transmitted: 'Señal transmitida al cosmos',
+      from: 'De',
+      castAdrift: 'Enviado el',
+      statsSent: 'enviados',
+      statsReceived: 'recibidos',
+      noSignals: 'No se detectaron señales. Sé el primero en transmitir.',
+      seenAll: 'Has visto todas las señales. Vuelve más tarde.',
+      yourSignalTransmitted: 'Tu señal fue transmitida. Ahora escucha el vacío.',
+      reportSuccess: 'Reporte enviado. Gracias.',
+      alreadyReported: 'Ya reportado',
+      reported: 'Reportado',
+      someoneMessage: 'Alguien, en algún lugar, envió este mensaje al vacío.'
+    },
+    de: {
+      subtitle: 'Anonyme Nachrichten durch die Leere',
+      homeIntro: 'Sende ein Signal ins All. Entdecke Nachrichten anderer Wanderer. Anonym. Zeitlos. Menschlich.',
+      sendSignal: 'Signal senden',
+      receiveSignal: 'Signal empfangen',
+      signalsAdrift: 'Signale treiben umher',
+      transmitTitle: 'Ins Nichts übertragen',
+      placeholder: 'Was möchtest du dem Universum mitteilen?',
+      transmit: 'Übertragen',
+      back: '← Zurück',
+      listenTitle: 'Der Leere lauschen',
+      receiveIntro: 'Entdecke ein Signal von einem Fremden.',
+      receiveBtn: 'Signal empfangen',
+      signalFrom: 'Signal von einem Fremden',
+      report: 'Melden',
+      receiveAnother: 'Weiteres empfangen',
+      sendAnother: 'Signal senden',
+      footer: 'Irgendwo hört jemand zu',
+      transmitted: 'Signal ins All übertragen',
+      from: 'Von',
+      castAdrift: 'Gesendet am',
+      statsSent: 'gesendet',
+      statsReceived: 'empfangen',
+      noSignals: 'Keine Signale erkannt. Sei der Erste.',
+      seenAll: 'Du hast alle Signale gesehen. Komm später wieder.',
+      yourSignalTransmitted: 'Dein Signal wurde übertragen. Lausche nun der Leere.',
+      reportSuccess: 'Meldung gesendet. Danke.',
+      alreadyReported: 'Bereits gemeldet',
+      reported: 'Gemeldet',
+      someoneMessage: 'Jemand, irgendwo, hat diese Nachricht ins Nichts geschickt.'
+    },
+    it: {
+      subtitle: 'Messaggi anonimi attraverso il vuoto',
+      homeIntro: 'Lancia un segnale nel cosmo. Scopri messaggi di altri viaggiatori. Anonimo. Senza tempo. Umano.',
+      sendSignal: 'Invia un Segnale',
+      receiveSignal: 'Ricevi un Segnale',
+      signalsAdrift: 'segnali alla deriva',
+      transmitTitle: 'Trasmetti nel vuoto',
+      placeholder: 'Cosa vuoi trasmettere all\'universo?',
+      transmit: 'Trasmetti',
+      back: '← Indietro',
+      listenTitle: 'Ascolta il vuoto',
+      receiveIntro: 'Scopri un segnale da uno sconosciuto.',
+      receiveBtn: 'Ricevi un segnale',
+      signalFrom: 'Segnale da uno sconosciuto',
+      report: 'Segnala',
+      receiveAnother: 'Ricevi un altro',
+      sendAnother: 'Invia un segnale',
+      footer: 'Da qualche parte, qualcuno sta ascoltando',
+      transmitted: 'Segnale trasmesso nel cosmo',
+      from: 'Da',
+      castAdrift: 'Inviato il',
+      statsSent: 'inviati',
+      statsReceived: 'ricevuti',
+      noSignals: 'Nessun segnale rilevato. Sii il primo a trasmettere.',
+      seenAll: 'Hai visto tutti i segnali. Torna più tardi.',
+      yourSignalTransmitted: 'Il tuo segnale è stato trasmesso. Ora ascolta il vuoto.',
+      reportSuccess: 'Segnalazione inviata. Grazie.',
+      alreadyReported: 'Già segnalato',
+      reported: 'Segnalato',
+      someoneMessage: 'Qualcuno, da qualche parte, ha inviato questo messaggio nel vuoto.'
+    },
+    pt: {
+      subtitle: 'Mensagens anônimas através do vazio',
+      homeIntro: 'Lance um sinal ao cosmos. Descubra mensagens de outros viajantes. Anônimo. Atemporal. Humano.',
+      sendSignal: 'Enviar um Sinal',
+      receiveSignal: 'Receber um Sinal',
+      signalsAdrift: 'sinais à deriva',
+      transmitTitle: 'Transmitir ao vazio',
+      placeholder: 'O que você quer transmitir ao universo?',
+      transmit: 'Transmitir',
+      back: '← Voltar',
+      listenTitle: 'Ouvir o vazio',
+      receiveIntro: 'Descubra um sinal de um desconhecido.',
+      receiveBtn: 'Receber um sinal',
+      signalFrom: 'Sinal de um desconhecido',
+      report: 'Denunciar',
+      receiveAnother: 'Receber outro',
+      sendAnother: 'Enviar um sinal',
+      footer: 'Em algum lugar, alguém está ouvindo',
+      transmitted: 'Sinal transmitido ao cosmos',
+      from: 'De',
+      castAdrift: 'Enviado em',
+      statsSent: 'enviados',
+      statsReceived: 'recebidos',
+      noSignals: 'Nenhum sinal detectado. Seja o primeiro a transmitir.',
+      seenAll: 'Você viu todos os sinais. Volte mais tarde.',
+      yourSignalTransmitted: 'Seu sinal foi transmitido. Agora ouça o vazio.',
+      reportSuccess: 'Denúncia enviada. Obrigado.',
+      alreadyReported: 'Já denunciado',
+      reported: 'Denunciado',
+      someoneMessage: 'Alguém, em algum lugar, enviou esta mensagem ao vazio.'
+    },
+    nl: {
+      subtitle: 'Anonieme berichten door de leegte',
+      homeIntro: 'Zend een signaal de kosmos in. Ontdek berichten van andere reizigers. Anoniem. Tijdloos. Menselijk.',
+      sendSignal: 'Signaal Verzenden',
+      receiveSignal: 'Signaal Ontvangen',
+      signalsAdrift: 'signalen rondzwevend',
+      transmitTitle: 'Verzend naar de leegte',
+      placeholder: 'Wat wil je naar het universum verzenden?',
+      transmit: 'Verzenden',
+      back: '← Terug',
+      listenTitle: 'Luister naar de leegte',
+      receiveIntro: 'Ontdek een signaal van een vreemde.',
+      receiveBtn: 'Ontvang een signaal',
+      signalFrom: 'Signaal van een vreemde',
+      report: 'Melden',
+      receiveAnother: 'Ontvang nog een',
+      sendAnother: 'Verzend een signaal',
+      footer: 'Ergens luistert iemand',
+      transmitted: 'Signaal verzonden naar de kosmos',
+      from: 'Van',
+      castAdrift: 'Verzonden op',
+      statsSent: 'verzonden',
+      statsReceived: 'ontvangen',
+      noSignals: 'Geen signalen gedetecteerd. Wees de eerste.',
+      seenAll: 'Je hebt alle signalen gezien. Kom later terug.',
+      yourSignalTransmitted: 'Je signaal is verzonden. Luister nu naar de leegte.',
+      reportSuccess: 'Melding verzonden. Bedankt.',
+      alreadyReported: 'Al gemeld',
+      reported: 'Gemeld',
+      someoneMessage: 'Iemand, ergens, stuurde dit bericht de leegte in.'
+    },
+    ru: {
+      subtitle: 'Анонимные послания сквозь пустоту',
+      homeIntro: 'Отправь сигнал в космос. Открой послания других странников. Анонимно. Вне времени. По-человечески.',
+      sendSignal: 'Отправить сигнал',
+      receiveSignal: 'Получить сигнал',
+      signalsAdrift: 'сигналов дрейфует',
+      transmitTitle: 'Передать в пустоту',
+      placeholder: 'Что ты хочешь передать вселенной?',
+      transmit: 'Передать',
+      back: '← Назад',
+      listenTitle: 'Слушать пустоту',
+      receiveIntro: 'Открой сигнал от незнакомца.',
+      receiveBtn: 'Получить сигнал',
+      signalFrom: 'Сигнал от незнакомца',
+      report: 'Пожаловаться',
+      receiveAnother: 'Получить ещё',
+      sendAnother: 'Отправить сигнал',
+      footer: 'Где-то кто-то слушает',
+      transmitted: 'Сигнал передан в космос',
+      from: 'От',
+      castAdrift: 'Отправлено',
+      statsSent: 'отправлено',
+      statsReceived: 'получено',
+      noSignals: 'Сигналы не обнаружены. Будь первым.',
+      seenAll: 'Ты видел все сигналы. Возвращайся позже.',
+      yourSignalTransmitted: 'Твой сигнал передан. Теперь слушай пустоту.',
+      reportSuccess: 'Жалоба отправлена. Спасибо.',
+      alreadyReported: 'Уже отмечено',
+      reported: 'Отмечено',
+      someoneMessage: 'Кто-то, где-то, отправил это послание в пустоту.'
+    },
+    ja: {
+      subtitle: '虚空を越える匿名のメッセージ',
+      homeIntro: '宇宙に信号を送ろう。他の旅人からのメッセージを発見しよう。匿名。永遠。人間らしく。',
+      sendSignal: '信号を送る',
+      receiveSignal: '信号を受け取る',
+      signalsAdrift: '個の信号が漂う',
+      transmitTitle: '虚空へ送信',
+      placeholder: '宇宙に何を伝えたいですか？',
+      transmit: '送信',
+      back: '← 戻る',
+      listenTitle: '虚空に耳を傾ける',
+      receiveIntro: '見知らぬ人からの信号を発見しよう。',
+      receiveBtn: '信号を受信',
+      signalFrom: '見知らぬ人からの信号',
+      report: '報告',
+      receiveAnother: '別の信号を受信',
+      sendAnother: '信号を送る',
+      footer: 'どこかで誰かが聴いている',
+      transmitted: '信号は宇宙へ送信されました',
+      from: '送信者',
+      castAdrift: '送信日',
+      statsSent: '送信',
+      statsReceived: '受信',
+      noSignals: '信号が検出されません。最初の送信者になろう。',
+      seenAll: 'すべての信号を見ました。後でまた来てください。',
+      yourSignalTransmitted: '信号が送信されました。虚空に耳を傾けて。',
+      reportSuccess: '報告が送信されました。ありがとう。',
+      alreadyReported: '報告済み',
+      reported: '報告済み',
+      someoneMessage: 'どこかの誰かがこのメッセージを虚空に送りました。'
+    },
+    ko: {
+      subtitle: '공허를 통한 익명의 메시지',
+      homeIntro: '우주로 신호를 보내세요. 다른 여행자들의 메시지를 발견하세요. 익명. 영원. 인간적인.',
+      sendSignal: '신호 보내기',
+      receiveSignal: '신호 받기',
+      signalsAdrift: '개의 신호가 떠돌고 있음',
+      transmitTitle: '공허로 전송',
+      placeholder: '우주에 무엇을 전하고 싶으신가요?',
+      transmit: '전송',
+      back: '← 뒤로',
+      listenTitle: '공허에 귀 기울이기',
+      receiveIntro: '낯선 이의 신호를 발견하세요.',
+      receiveBtn: '신호 수신',
+      signalFrom: '낯선 이의 신호',
+      report: '신고',
+      receiveAnother: '다른 신호 받기',
+      sendAnother: '신호 보내기',
+      footer: '어딘가에서 누군가가 듣고 있습니다',
+      transmitted: '신호가 우주로 전송되었습니다',
+      from: '보낸 이',
+      castAdrift: '전송일',
+      statsSent: '전송됨',
+      statsReceived: '수신됨',
+      noSignals: '감지된 신호가 없습니다. 첫 번째가 되어 보세요.',
+      seenAll: '모든 신호를 보셨습니다. 나중에 다시 와주세요.',
+      yourSignalTransmitted: '신호가 전송되었습니다. 이제 공허에 귀 기울여 보세요.',
+      reportSuccess: '신고가 접수되었습니다. 감사합니다.',
+      alreadyReported: '이미 신고됨',
+      reported: '신고됨',
+      someoneMessage: '어딘가의 누군가가 이 메시지를 공허로 보냈습니다.'
+    },
+    zh: {
+      subtitle: '穿越虚空的匿名信息',
+      homeIntro: '向宇宙发送信号。发现其他旅人的信息。匿名。永恒。人性。',
+      sendSignal: '发送信号',
+      receiveSignal: '接收信号',
+      signalsAdrift: '个信号漂流中',
+      transmitTitle: '传输到虚空',
+      placeholder: '你想向宇宙传达什么？',
+      transmit: '传输',
+      back: '← 返回',
+      listenTitle: '聆听虚空',
+      receiveIntro: '发现来自陌生人的信号。',
+      receiveBtn: '接收信号',
+      signalFrom: '来自陌生人的信号',
+      report: '举报',
+      receiveAnother: '接收另一个',
+      sendAnother: '发送信号',
+      footer: '在某处，有人在倾听',
+      transmitted: '信号已传输到宇宙',
+      from: '来自',
+      castAdrift: '发送于',
+      statsSent: '已发送',
+      statsReceived: '已接收',
+      noSignals: '未检测到信号。成为第一个发送者。',
+      seenAll: '你已看完所有信号。稍后再来。',
+      yourSignalTransmitted: '你的信号已传输。现在聆听虚空。',
+      reportSuccess: '举报已提交。谢谢。',
+      alreadyReported: '已举报',
+      reported: '已举报',
+      someoneMessage: '某人，在某处，将这条信息发送到了虚空。'
+    },
+    ar: {
+      subtitle: 'رسائل مجهولة عبر الفراغ',
+      homeIntro: 'أرسل إشارة إلى الكون. اكتشف رسائل من مسافرين آخرين. مجهول. خالد. إنساني.',
+      sendSignal: 'إرسال إشارة',
+      receiveSignal: 'استقبال إشارة',
+      signalsAdrift: 'إشارات تائهة',
+      transmitTitle: 'البث إلى الفراغ',
+      placeholder: 'ماذا تريد أن تنقل إلى الكون؟',
+      transmit: 'إرسال',
+      back: '→ رجوع',
+      listenTitle: 'الاستماع إلى الفراغ',
+      receiveIntro: 'اكتشف إشارة من شخص غريب.',
+      receiveBtn: 'استقبال إشارة',
+      signalFrom: 'إشارة من شخص غريب',
+      report: 'إبلاغ',
+      receiveAnother: 'استقبال أخرى',
+      sendAnother: 'إرسال إشارة',
+      footer: 'في مكان ما، شخص ما يستمع',
+      transmitted: 'تم إرسال الإشارة إلى الكون',
+      from: 'من',
+      castAdrift: 'أُرسلت في',
+      statsSent: 'مرسلة',
+      statsReceived: 'مستلمة',
+      noSignals: 'لم يتم اكتشاف إشارات. كن الأول.',
+      seenAll: 'لقد رأيت جميع الإشارات. عد لاحقاً.',
+      yourSignalTransmitted: 'تم إرسال إشارتك. الآن استمع إلى الفراغ.',
+      reportSuccess: 'تم إرسال البلاغ. شكراً.',
+      alreadyReported: 'تم الإبلاغ مسبقاً',
+      reported: 'تم الإبلاغ',
+      someoneMessage: 'شخص ما، في مكان ما، أرسل هذه الرسالة إلى الفراغ.'
     }
   };
 
@@ -327,6 +637,9 @@
   function applyLanguage(lang) {
     currentLang = lang;
     const t = translations[lang];
+    
+    // Set text direction for RTL languages (Arabic)
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     
     // Update all translatable elements
     const subtitle = document.querySelector('.subtitle');
@@ -595,11 +908,18 @@
   }
 
   // Format date
+  // Locale mapping for date formatting
+  const localeMap = {
+    en: 'en-US', fr: 'fr-FR', es: 'es-ES', de: 'de-DE',
+    it: 'it-IT', pt: 'pt-BR', nl: 'nl-NL', ru: 'ru-RU',
+    ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', ar: 'ar-SA'
+  };
+
   function formatDate(dateString) {
     const date = new Date(dateString);
     const options = { day: 'numeric', month: 'long', year: 'numeric' };
     const t = translations[currentLang];
-    const locale = currentLang === 'fr' ? 'fr-FR' : 'en-US';
+    const locale = localeMap[currentLang] || 'en-US';
     return t.castAdrift + ' ' + date.toLocaleDateString(locale, options);
   }
 
@@ -1050,9 +1370,11 @@
     if (themeSelect) themeSelect.value = savedTheme;
     applyTheme(savedTheme);
     
-    // Load saved language
-    const savedLang = localStorage.getItem('echo_lang') || 
-      (navigator.language.startsWith('fr') ? 'fr' : 'en');
+    // Load saved language or detect from browser
+    const supportedLangs = Object.keys(translations);
+    const browserLang = navigator.language.split('-')[0];
+    const detectedLang = supportedLangs.includes(browserLang) ? browserLang : 'en';
+    const savedLang = localStorage.getItem('echo_lang') || detectedLang;
     const langSelect = document.getElementById('lang-select');
     if (langSelect) langSelect.value = savedLang;
     applyLanguage(savedLang);
