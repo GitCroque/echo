@@ -37,7 +37,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
   <!-- Styles — keep ?v= in sync with APP_VERSION in sw.js -->
-  <link rel="stylesheet" href="/style.css?v=20">
+  <link rel="stylesheet" href="/style.css?v=21">
 </head>
 <body>
   <!-- Stars background with multiple layers -->
@@ -54,20 +54,25 @@
       <option value="ocean">🌊 Ocean</option>
       <option value="aurora">🌈 Aurora</option>
     </select>
-    <select class="select-mini" id="lang-select" title="Language">
-      <option value="en">EN</option>
-      <option value="fr">FR</option>
-      <option value="es">ES</option>
-      <option value="de">DE</option>
-      <option value="it">IT</option>
-      <option value="pt">PT</option>
-      <option value="nl">NL</option>
-      <option value="ru">RU</option>
-      <option value="ja">日本</option>
-      <option value="ko">한국</option>
-      <option value="zh">中文</option>
-      <option value="ar">عربي</option>
-    </select>
+    <div class="lang-dropdown" id="lang-dropdown">
+      <button class="lang-toggle" id="lang-toggle" type="button" title="Language" aria-label="Select language" aria-expanded="false">
+        <span class="lang-flag" id="current-flag">🇬🇧</span>
+      </button>
+      <div class="lang-menu" id="lang-menu" role="menu">
+        <button class="lang-option" data-lang="en" role="menuitem"><span class="lang-flag">🇬🇧</span> English</button>
+        <button class="lang-option" data-lang="fr" role="menuitem"><span class="lang-flag">🇫🇷</span> Français</button>
+        <button class="lang-option" data-lang="de" role="menuitem"><span class="lang-flag">🇩🇪</span> Deutsch</button>
+        <button class="lang-option" data-lang="es" role="menuitem"><span class="lang-flag">🇪🇸</span> Español</button>
+        <button class="lang-option" data-lang="it" role="menuitem"><span class="lang-flag">🇮🇹</span> Italiano</button>
+        <button class="lang-option" data-lang="pt" role="menuitem"><span class="lang-flag">🇧🇷</span> Português</button>
+        <button class="lang-option" data-lang="nl" role="menuitem"><span class="lang-flag">🇳🇱</span> Nederlands</button>
+        <button class="lang-option" data-lang="ru" role="menuitem"><span class="lang-flag">🇷🇺</span> Русский</button>
+        <button class="lang-option" data-lang="ja" role="menuitem"><span class="lang-flag">🇯🇵</span> 日本語</button>
+        <button class="lang-option" data-lang="ko" role="menuitem"><span class="lang-flag">🇰🇷</span> 한국어</button>
+        <button class="lang-option" data-lang="zh" role="menuitem"><span class="lang-flag">🇨🇳</span> 中文</button>
+        <button class="lang-option" data-lang="ar" role="menuitem"><span class="lang-flag">🇸🇦</span> العربية</button>
+      </div>
+    </div>
     <button class="sound-toggle" id="sound-toggle" title="Toggle sound" aria-label="Toggle sound">
       <svg id="sound-icon-on" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
@@ -149,6 +154,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- Application JavaScript — keep ?v= in sync with APP_VERSION in sw.js -->
-  <script src="/app.js?v=20"></script>
+  <script src="/app.js?v=21"></script>
 </body>
 </html>

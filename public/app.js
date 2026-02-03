@@ -5,7 +5,7 @@
   'use strict';
 
   // App version - keep in sync with sw.js
-  const APP_VERSION = '20';
+  const APP_VERSION = '21';
 
   // State
   let seenMessageIds = [];
@@ -631,7 +631,25 @@
     }
   };
 
+  // Flag mapping for language dropdown
+  const langFlags = {
+    en: '🇬🇧', fr: '🇫🇷', es: '🇪🇸', de: '🇩🇪',
+    it: '🇮🇹', pt: '🇧🇷', nl: '🇳🇱', ru: '🇷🇺',
+    ja: '🇯🇵', ko: '🇰🇷', zh: '🇨🇳', ar: '🇸🇦'
+  };
+
   let currentLang = 'en';
+
+  // Update language dropdown UI
+  function updateLangDropdown(lang) {
+    const currentFlag = document.getElementById('current-flag');
+    if (currentFlag) currentFlag.textContent = langFlags[lang] || '🇬🇧';
+    
+    // Update active state in menu
+    document.querySelectorAll('.lang-option').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+  }
 
   // Apply language to UI
   function applyLanguage(lang) {
@@ -700,6 +718,9 @@
     // Update stats display
     displayPersonalStats();
     loadStats();
+    
+    // Update dropdown UI
+    updateLangDropdown(lang);
     
     // Save preference
     localStorage.setItem('echo_lang', lang);
@@ -1229,11 +1250,32 @@
       });
     }
 
-    // Language select
-    const langSelect = document.getElementById('lang-select');
-    if (langSelect) {
-      langSelect.addEventListener('change', function() {
-        applyLanguage(this.value);
+    // Language dropdown
+    const langToggle = document.getElementById('lang-toggle');
+    const langMenu = document.getElementById('lang-menu');
+    
+    if (langToggle && langMenu) {
+      langToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = langMenu.classList.toggle('open');
+        langToggle.setAttribute('aria-expanded', isOpen);
+      });
+      
+      // Language option clicks
+      document.querySelectorAll('.lang-option').forEach(btn => {
+        btn.addEventListener('click', function() {
+          applyLanguage(this.dataset.lang);
+          langMenu.classList.remove('open');
+          langToggle.setAttribute('aria-expanded', 'false');
+        });
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.lang-dropdown')) {
+          langMenu.classList.remove('open');
+          langToggle.setAttribute('aria-expanded', 'false');
+        }
       });
     }
 
@@ -1375,8 +1417,6 @@
     const browserLang = navigator.language.split('-')[0];
     const detectedLang = supportedLangs.includes(browserLang) ? browserLang : 'en';
     const savedLang = localStorage.getItem('echo_lang') || detectedLang;
-    const langSelect = document.getElementById('lang-select');
-    if (langSelect) langSelect.value = savedLang;
     applyLanguage(savedLang);
     
     bindEvents();
