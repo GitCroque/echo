@@ -37,3 +37,6 @@ build/
 CLAUDE.md
 CLAUDE.local.md
 .claude/
+
+# AI Context
+PROJECT_CONTEXT.md

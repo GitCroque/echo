@@ -92,7 +92,7 @@ const rateLimiterWrite = createRateLimiter('write');
 const rateLimiterRead = createRateLimiter('read');
 
 // Ensure data directory exists
-const dataDir = '/data';
+const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
