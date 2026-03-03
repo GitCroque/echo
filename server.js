@@ -61,7 +61,7 @@ function createRateLimiter(type) {
   const map = rateLimitMaps[type];
 
   return function(req, res, next) {
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.socket?.remoteAddress;
     const now = Date.now();
 
     if (!map.has(ip)) {
@@ -140,10 +140,9 @@ const REPORT_THRESHOLD = 3;
 // Pre-compiled prepared statements for performance
 const stmts = {
   insertMessage: db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)'),
-  getRandomMessage: db.prepare('SELECT id, content, country, created_at FROM messages LIMIT 1 OFFSET ?'),
-  getRandomMessageExcluding: null, // Built dynamically due to variable IN clause
+  updateCountry: db.prepare('UPDATE messages SET country = ? WHERE id = ?'),
+  getRandomMessage: db.prepare('SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1'),
   countMessages: db.prepare('SELECT COUNT(*) as total FROM messages'),
-  countMessagesExcluding: null, // Built dynamically
   checkMessage: db.prepare('SELECT id FROM messages WHERE id = ?'),
   insertReport: db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)'),
   countReports: db.prepare('SELECT COUNT(*) as count FROM reports WHERE message_id = ?'),
@@ -152,8 +151,11 @@ const stmts = {
   healthCheck: db.prepare('SELECT 1'),
 };
 
-// Atomic auto-moderation transaction
+// Atomic auto-moderation transaction (includes existence check to avoid TOCTOU)
 const autoModerate = db.transaction((messageId, reason) => {
+  const message = stmts.checkMessage.get(messageId);
+  if (!message) return { notFound: true };
+
   stmts.insertReport.run(messageId, reason);
   const { count } = stmts.countReports.get(messageId);
   if (count >= REPORT_THRESHOLD) {
@@ -237,11 +239,11 @@ app.post('/api/message', rateLimiterWrite, async (req, res) => {
     });
 
     // Update country in background (fire-and-forget, don't block response)
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.socket?.remoteAddress;
     getCountryFromIP(ip).then(country => {
       if (country) {
         try {
-          db.prepare('UPDATE messages SET country = ? WHERE id = ?').run(country, messageId);
+          stmts.updateCountry.run(country, messageId);
         } catch (e) {
           // Silently ignore - country is optional
         }
@@ -257,9 +259,9 @@ app.post('/api/message', rateLimiterWrite, async (req, res) => {
 app.post('/api/message/random', rateLimiterRead, (req, res) => {
   const { exclude = [] } = req.body;
 
-  // Validate exclude array
+  // Validate and cap exclude array to prevent oversized SQL queries
   const excludeIds = Array.isArray(exclude)
-    ? exclude.filter(id => Number.isInteger(id) && id > 0)
+    ? exclude.filter(id => Number.isInteger(id) && id > 0).slice(0, 100)
     : [];
 
   try {
@@ -312,15 +314,12 @@ app.post('/api/report', rateLimiterRead, (req, res) => {
   }
 
   try {
-    // Check if message exists
-    const message = stmts.checkMessage.get(messageId);
+    // Atomic: check existence + insert report + auto-moderate if threshold reached
+    const result = autoModerate(messageId, reason || null);
 
-    if (!message) {
+    if (result.notFound) {
       return res.status(404).json({ error: 'Message not found' });
     }
-
-    // Atomic: insert report + auto-moderate if threshold reached
-    autoModerate(messageId, reason || null);
 
     res.status(201).json({
       success: true,
@@ -376,7 +375,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Echo server listening on port ${PORT}`);
   console.log(`📡 Database: ${dbPath}`);
 });
@@ -385,8 +384,10 @@ app.listen(PORT, () => {
 function shutdown() {
   const forceExit = setTimeout(() => process.exit(1), 5000);
   forceExit.unref();
-  try { db.close(); } catch (e) { /* ignore */ }
-  process.exit(0);
+  server.close(() => {
+    try { db.close(); } catch (e) { /* ignore */ }
+    process.exit(0);
+  });
 }
 
 process.on('SIGINT', shutdown);

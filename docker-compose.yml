@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - DATA_DIR=/data
 
 volumes:
   echo-data:

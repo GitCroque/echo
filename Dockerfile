@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --production
+RUN npm ci --omit=dev
 
 # Stage 2: Runtime (no build tools)
 FROM node:20-alpine
@@ -20,11 +20,14 @@ COPY package*.json ./
 COPY server.js ./
 COPY public ./public
 
-# Create data directory
-RUN mkdir -p /data
+# Create non-root user and data directory
+RUN addgroup -S echo && adduser -S echo -G echo && mkdir -p /data && chown echo:echo /data
 
 # Expose port
 EXPOSE 3000
+
+ENV DATA_DIR=/data
+USER echo
 
 # Health check - verify the app is responding
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

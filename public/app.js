@@ -5,7 +5,7 @@
   'use strict';
 
   // App version - keep in sync with sw.js
-  const APP_VERSION = '22';
+  const APP_VERSION = '23';
 
   // State
   let seenMessageIds = [];
@@ -1008,7 +1008,10 @@
   async function fetchAndDisplayMessage(btn, options) {
     const { navigateToReceive, animationDelay } = options || {};
     const originalText = btn.textContent;
-    btn.innerHTML = '<span class="loading"></span>';
+    btn.textContent = '';
+    const spinner = document.createElement('span');
+    spinner.className = 'loading';
+    btn.appendChild(spinner);
     btn.disabled = true;
 
     try {
@@ -1072,7 +1075,11 @@
       } else {
         var showError = function() {
           if (elements.messageContent) {
-            elements.messageContent.innerHTML = '<span class="message-error">' + escapeHtml(data.error) + '</span>';
+            elements.messageContent.textContent = '';
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'message-error';
+            errorSpan.textContent = data.error;
+            elements.messageContent.appendChild(errorSpan);
           }
           if (elements.messageDate) elements.messageDate.textContent = '';
           if (elements.messageDisplay) elements.messageDisplay.classList.add('active');
@@ -1151,7 +1158,10 @@
     if (!btn) return;
 
     const originalText = btn.textContent;
-    btn.innerHTML = '<span class="loading"></span>';
+    btn.textContent = '';
+    const spinner = document.createElement('span');
+    spinner.className = 'loading';
+    btn.appendChild(spinner);
     btn.disabled = true;
 
     try {
@@ -1380,7 +1390,7 @@
       elements.btnReceive.style.display = 'block';
     }
     if (elements.receiveIntro) {
-      elements.receiveIntro.textContent = 'Discover a signal from a stranger.';
+      elements.receiveIntro.textContent = translations[currentLang].receiveIntro;
       elements.receiveIntro.style.display = 'block';
     }
   }
