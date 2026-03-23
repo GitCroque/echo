@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -5,7 +6,312 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-// Initialize database schema and return prepared statements
+const DEFAULT_PORT = 3000;
+const MESSAGE_MAX_LENGTH = 140;
+const REPORT_THRESHOLD = 3;
+const ACCESS_COOKIE_NAME = 'echo_access';
+const ACCESS_TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const ACCESS_SECRET_FILE = 'app-secret.key';
+const URL_PATTERN = /\b(?:https?:\/\/|www\.)\S+|\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?:\/\S*)?\b/i;
+
+function isDatabaseLike(value) {
+  return Boolean(
+    value
+    && typeof value.exec === 'function'
+    && typeof value.prepare === 'function'
+  );
+}
+
+function parseTrustProxy(value) {
+  if (typeof value === 'boolean' || typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === 'false' || normalized === 'off') {
+    return false;
+  }
+  if (normalized === 'true' || normalized === 'on') {
+    return true;
+  }
+  if (/^\d+$/.test(normalized)) {
+    return Number.parseInt(normalized, 10);
+  }
+
+  return value;
+}
+
+function createRateLimiter(config) {
+  const map = new Map();
+  const cleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, data] of map.entries()) {
+      if (now - data.windowStart > config.window) {
+        map.delete(ip);
+      }
+    }
+  }, 60000);
+  cleanup.unref?.();
+
+  function middleware(req, res, next) {
+    const ip = getClientIp(req);
+    const now = Date.now();
+
+    if (!map.has(ip)) {
+      map.set(ip, { count: 1, windowStart: now });
+      return next();
+    }
+
+    const data = map.get(ip);
+    if (now - data.windowStart > config.window) {
+      map.set(ip, { count: 1, windowStart: now });
+      return next();
+    }
+
+    if (data.count >= config.max) {
+      const waitTime = Math.ceil((config.window - (now - data.windowStart)) / 1000);
+      return res.status(429).json({
+        error: `Too many requests. Please wait ${waitTime} seconds.`
+      });
+    }
+
+    data.count += 1;
+    return next();
+  }
+
+  middleware.destroy = () => clearInterval(cleanup);
+  return middleware;
+}
+
+function ensureDataDir(dataDir) {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+}
+
+function loadOrCreateSecret(secretPath) {
+  try {
+    return fs.readFileSync(secretPath, 'utf8').trim();
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  const secret = crypto.randomBytes(32).toString('hex');
+  try {
+    fs.writeFileSync(secretPath, secret, { mode: 0o600, flag: 'wx' });
+    return secret;
+  } catch (error) {
+    if (error.code === 'EEXIST') {
+      return fs.readFileSync(secretPath, 'utf8').trim();
+    }
+    throw error;
+  }
+}
+
+function signValue(secret, value) {
+  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
+}
+
+function createAccessToken(secret) {
+  const payload = Buffer.from(JSON.stringify({
+    issuedAt: Date.now(),
+    version: 1
+  }), 'utf8').toString('base64url');
+  const signature = signValue(secret, payload);
+  return `${payload}.${signature}`;
+}
+
+function verifyAccessToken(secret, token, maxAgeMs) {
+  if (!token || typeof token !== 'string') {
+    return false;
+  }
+
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) {
+    return false;
+  }
+
+  const expectedSignature = signValue(secret, payload);
+  if (signature.length !== expectedSignature.length) {
+    return false;
+  }
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+    return false;
+  }
+
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (!data || typeof data.issuedAt !== 'number') {
+      return false;
+    }
+    return (Date.now() - data.issuedAt) <= maxAgeMs;
+  } catch {
+    return false;
+  }
+}
+
+function parseCookies(cookieHeader) {
+  if (!cookieHeader || typeof cookieHeader !== 'string') {
+    return {};
+  }
+
+  return cookieHeader.split(';').reduce((cookies, pair) => {
+    const separatorIndex = pair.indexOf('=');
+    if (separatorIndex === -1) {
+      return cookies;
+    }
+
+    const key = pair.slice(0, separatorIndex).trim();
+    const value = pair.slice(separatorIndex + 1).trim();
+    try {
+      cookies[key] = decodeURIComponent(value);
+    } catch {
+      cookies[key] = value;
+    }
+    return cookies;
+  }, {});
+}
+
+function serializeCookie(name, value, options = {}) {
+  const parts = [`${name}=${encodeURIComponent(value)}`];
+
+  if (options.path) {
+    parts.push(`Path=${options.path}`);
+  }
+  if (options.httpOnly) {
+    parts.push('HttpOnly');
+  }
+  if (options.sameSite) {
+    parts.push(`SameSite=${options.sameSite}`);
+  }
+  if (options.secure) {
+    parts.push('Secure');
+  }
+  if (typeof options.maxAge === 'number') {
+    parts.push(`Max-Age=${Math.floor(options.maxAge)}`);
+  }
+
+  return parts.join('; ');
+}
+
+function normalizeIp(ip) {
+  if (!ip || typeof ip !== 'string') {
+    return '';
+  }
+
+  const value = ip.trim();
+  if (!value) {
+    return '';
+  }
+
+  if (value.startsWith('::ffff:')) {
+    return value.slice(7);
+  }
+
+  return value;
+}
+
+function isPrivateOrReservedIp(ip) {
+  const normalized = normalizeIp(ip);
+  if (!normalized) {
+    return true;
+  }
+
+  if (normalized === '::1') {
+    return true;
+  }
+
+  if (normalized.includes(':')) {
+    const lower = normalized.toLowerCase();
+    return lower.startsWith('fc')
+      || lower.startsWith('fd')
+      || lower.startsWith('fe8')
+      || lower.startsWith('fe9')
+      || lower.startsWith('fea')
+      || lower.startsWith('feb');
+  }
+
+  const octets = normalized.split('.').map(Number);
+  if (octets.length !== 4 || octets.some(Number.isNaN)) {
+    return true;
+  }
+
+  const [a, b] = octets;
+  return a === 0
+    || a === 10
+    || a === 127
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+    || (a === 100 && b >= 64 && b <= 127);
+}
+
+function getClientIp(req) {
+  return normalizeIp(req.ip || req.socket?.remoteAddress || '');
+}
+
+function extractCountry(data) {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  if (typeof data.country === 'string' && data.country.trim()) {
+    return data.country.trim();
+  }
+  if (typeof data.country_name === 'string' && data.country_name.trim()) {
+    return data.country_name.trim();
+  }
+
+  return null;
+}
+
+function createCountryLookup(options) {
+  const enabled = options.countryLookupEnabled;
+  const urlTemplate = options.countryLookupUrlTemplate;
+  const fetchImpl = options.fetchImpl || global.fetch;
+
+  return async function getCountryFromIP(ip) {
+    const normalizedIp = normalizeIp(ip);
+    if (!enabled || !urlTemplate || !urlTemplate.startsWith('https://') || !fetchImpl) {
+      return null;
+    }
+
+    if (!normalizedIp || isPrivateOrReservedIp(normalizedIp)) {
+      return null;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    timeout.unref?.();
+
+    try {
+      const response = await fetchImpl(
+        urlTemplate.replace('{ip}', encodeURIComponent(normalizedIp)),
+        {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal
+        }
+      );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return extractCountry(await response.json());
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+}
+
 function initDb(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -16,11 +322,10 @@ function initDb(db) {
     )
   `);
 
-  // Add country column if it doesn't exist (migration for existing databases)
   try {
     db.exec('ALTER TABLE messages ADD COLUMN country TEXT');
-  } catch (e) {
-    // Column already exists, ignore error
+  } catch {
+    // Migration already applied.
   }
 
   db.exec(`
@@ -33,13 +338,20 @@ function initDb(db) {
     )
   `);
 
+  try {
+    db.exec('ALTER TABLE reports ADD COLUMN reporter_hash TEXT');
+  } catch {
+    // Migration already applied.
+  }
+
   db.exec('CREATE INDEX IF NOT EXISTS idx_reports_message_id ON reports(message_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)');
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_unique_reporter
+    ON reports(message_id, reporter_hash)
+    WHERE reporter_hash IS NOT NULL
+  `);
 
-  // Auto-moderation threshold
-  const REPORT_THRESHOLD = 3;
-
-  // Pre-compiled prepared statements for performance
   const stmts = {
     insertMessage: db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)'),
     updateCountry: db.prepare('UPDATE messages SET country = ? WHERE id = ?'),
@@ -47,217 +359,169 @@ function initDb(db) {
     getRandomMessageExcluding: db.prepare('SELECT id, content, country, created_at FROM messages WHERE id NOT IN (SELECT value FROM json_each(?)) ORDER BY RANDOM() LIMIT 1'),
     countMessages: db.prepare('SELECT COUNT(*) as total FROM messages'),
     checkMessage: db.prepare('SELECT id FROM messages WHERE id = ?'),
-    insertReport: db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)'),
+    insertReport: db.prepare('INSERT INTO reports (message_id, reason, reporter_hash) VALUES (?, ?, ?)'),
     countReports: db.prepare('SELECT COUNT(*) as count FROM reports WHERE message_id = ?'),
     deleteReports: db.prepare('DELETE FROM reports WHERE message_id = ?'),
     deleteMessage: db.prepare('DELETE FROM messages WHERE id = ?'),
     healthCheck: db.prepare('SELECT 1'),
   };
 
-  // Atomic auto-moderation transaction (includes existence check to avoid TOCTOU)
-  const autoModerate = db.transaction((messageId, reason) => {
+  const autoModerate = db.transaction((messageId, reason, reporterHash) => {
     const message = stmts.checkMessage.get(messageId);
-    if (!message) return { notFound: true };
+    if (!message) {
+      return { notFound: true };
+    }
 
-    stmts.insertReport.run(messageId, reason);
+    try {
+      stmts.insertReport.run(messageId, reason, reporterHash);
+    } catch (error) {
+      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        return { duplicate: true };
+      }
+      throw error;
+    }
+
     const { count } = stmts.countReports.get(messageId);
     if (count >= REPORT_THRESHOLD) {
       stmts.deleteReports.run(messageId);
       stmts.deleteMessage.run(messageId);
-      console.log(`Auto-moderation: Message ${messageId} deleted (${count} reports)`);
       return { deleted: true, count };
     }
+
     return { deleted: false, count };
   });
 
-  return { stmts, autoModerate };
+  return { autoModerate, stmts };
 }
 
-// Helper function to get country from IP
-async function getCountryFromIP(ip) {
-  try {
-    // Skip for localhost/private IPs
-    if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-      return null;
-    }
+function buildApp(options) {
+  const {
+    appSecret,
+    countryLookupEnabled,
+    countryLookupUrlTemplate,
+    db,
+    fetchImpl,
+    secureCookies,
+    trustProxy
+  } = options;
 
-    // Clean IP (remove ::ffff: prefix for IPv4-mapped IPv6)
-    const cleanIP = ip.replace(/^::ffff:/, '');
-
-    const response = await fetch(`http://ip-api.com/json/${cleanIP}?fields=status,country`);
-    const data = await response.json();
-
-    if (data.status === 'success' && data.country) {
-      return data.country;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching country:', error);
-    return null;
-  }
-}
-
-// Create and configure Express app with given database
-function createApp(db) {
-  const { stmts, autoModerate } = initDb(db);
+  const { autoModerate, stmts } = initDb(db);
+  const getCountryFromIP = createCountryLookup({
+    countryLookupEnabled,
+    countryLookupUrlTemplate,
+    fetchImpl
+  });
+  const rateLimiterWrite = createRateLimiter({ window: 2 * 60 * 1000, max: 5 });
+  const rateLimiterRead = createRateLimiter({ window: 60 * 1000, max: 30 });
 
   const app = express();
+  app.set('trust proxy', trustProxy);
 
-  // Security headers with Helmet
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],  // No unsafe-inline - JS is in external file
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
         upgradeInsecureRequests: []
       }
     },
-    crossOriginEmbedderPolicy: false,  // Allow fonts from Google
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'no-referrer' }
   }));
 
-  // Disable X-Powered-By header (already done by helmet, but explicit)
   app.disable('x-powered-by');
-
-  // Enable gzip compression for all responses
   app.use(compression());
+  app.use(express.json({ limit: '10kb' }));
 
-  // Rate limiting configuration
-  const rateLimitConfigs = {
-    write: { window: 2 * 60 * 1000, max: 5 },   // 5 per 2 min (send messages)
-    read: { window: 60 * 1000, max: 30 },         // 30 per min (receive/report)
-  };
-  const rateLimitMaps = {
-    write: new Map(),
-    read: new Map(),
-  };
+  app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
 
-  // Clean up old rate limit entries every minute (unref so it doesn't block process exit)
-  const cleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [type, map] of Object.entries(rateLimitMaps)) {
-      const window = rateLimitConfigs[type].window;
-      for (const [ip, data] of map.entries()) {
-        if (now - data.windowStart > window) {
-          map.delete(ip);
-        }
-      }
-    }
-  }, 60000);
-  cleanupInterval.unref();
-
-  // Rate limiter middleware factory
-  function createRateLimiter(type) {
-    const config = rateLimitConfigs[type];
-    const map = rateLimitMaps[type];
-
-    return function(req, res, next) {
-      const ip = req.ip || req.socket?.remoteAddress;
-      const now = Date.now();
-
-      if (!map.has(ip)) {
-        map.set(ip, { count: 1, windowStart: now });
-        return next();
-      }
-
-      const data = map.get(ip);
-
-      if (now - data.windowStart > config.window) {
-        map.set(ip, { count: 1, windowStart: now });
-        return next();
-      }
-
-      if (data.count >= config.max) {
-        const waitTime = Math.ceil((config.window - (now - data.windowStart)) / 1000);
-        return res.status(429).json({
-          error: `Too many requests. Please wait ${waitTime} seconds.`
-        });
-      }
-
-      data.count++;
-      next();
-    };
-  }
-
-  const rateLimiterWrite = createRateLimiter('write');
-  const rateLimiterRead = createRateLimiter('read');
-
-  // Middleware
-  app.use(express.json({ limit: '10kb' }));  // Limit body size to prevent DoS
-  app.use(express.static('public', {
-    maxAge: '1d',  // Cache static files for 1 day
+  app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '1d',
     etag: true
   }));
 
-  // Trust proxy for rate limiting behind reverse proxy
-  app.set('trust proxy', 1);
+  function requireReceiveAccess(req, res, next) {
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies[ACCESS_COOKIE_NAME];
+    if (!verifyAccessToken(appSecret, token, ACCESS_TOKEN_MAX_AGE_MS)) {
+      return res.status(403).json({
+        error: 'Send a signal before receiving one.'
+      });
+    }
 
-  // API Routes
+    return next();
+  }
 
-  // POST /api/message - Save a new message (with rate limiting)
   app.post('/api/message', rateLimiterWrite, async (req, res) => {
-    const { content } = req.body;
+    const { content } = req.body || {};
 
-    if (!content || typeof content !== 'string') {
+    if (typeof content !== 'string') {
       return res.status(400).json({ error: 'Message content is required' });
     }
 
     const trimmedContent = content.trim();
-
-    if (trimmedContent.length === 0) {
+    if (!trimmedContent) {
       return res.status(400).json({ error: 'Message cannot be empty' });
     }
 
-    if (trimmedContent.length > 140) {
-      return res.status(400).json({ error: 'Message cannot exceed 140 characters' });
+    if (trimmedContent.length > MESSAGE_MAX_LENGTH) {
+      return res.status(400).json({ error: `Message cannot exceed ${MESSAGE_MAX_LENGTH} characters` });
     }
 
-    // Filter out URLs and links
-    const urlPattern = /(https?:\/\/|www\.|\.com|\.net|\.org|\.io|\.co|\.app|\.dev|\.xyz|\.fr|\.de|\.uk|\.ru|\.cn|\.es|\.it|\.nl|\.be|\.ch|\.ca|\.au|\.info|\.biz|\.me|\.tv|\.cc|t\.me|bit\.ly|goo\.gl|tinyurl|shorturl)/i;
-    if (urlPattern.test(trimmedContent)) {
+    if (URL_PATTERN.test(trimmedContent)) {
       return res.status(400).json({ error: 'Links are not allowed in signals' });
     }
 
     try {
-      // Insert message immediately without country (non-blocking)
       const result = stmts.insertMessage.run(trimmedContent, null);
       const messageId = result.lastInsertRowid;
+      const accessToken = createAccessToken(appSecret);
 
-      // Respond immediately for better UX
+      res.setHeader('Set-Cookie', serializeCookie(ACCESS_COOKIE_NAME, accessToken, {
+        httpOnly: true,
+        maxAge: ACCESS_TOKEN_MAX_AGE_MS / 1000,
+        path: '/',
+        sameSite: 'Strict',
+        secure: secureCookies
+      }));
+
       res.status(201).json({
         success: true,
         id: messageId
       });
 
-      // Update country in background (fire-and-forget, don't block response)
-      const ip = req.ip || req.socket?.remoteAddress;
-      getCountryFromIP(ip).then(country => {
+      const ip = getClientIp(req);
+      getCountryFromIP(ip).then((country) => {
         if (country) {
           try {
             stmts.updateCountry.run(country, messageId);
-          } catch (e) {
-            // Silently ignore - country is optional
+          } catch {
+            // Country enrichment is optional and should never break writes.
           }
         }
-      }).catch(() => {}); // Ignore errors - country lookup is non-critical
+      }).catch(() => {});
     } catch (error) {
       console.error('Error saving message:', error);
-      res.status(500).json({ error: 'Error sending message' });
+      return res.status(500).json({ error: 'Error sending message' });
     }
   });
 
-  // POST /api/message/random - Get a random message (excluding already seen)
-  app.post('/api/message/random', rateLimiterRead, (req, res) => {
-    const { exclude = [] } = req.body;
-
-    // Validate and cap exclude array to prevent oversized SQL queries
+  app.post('/api/message/random', rateLimiterRead, requireReceiveAccess, (req, res) => {
+    const { exclude = [] } = req.body || {};
     const excludeIds = Array.isArray(exclude)
-      ? exclude.filter(id => Number.isInteger(id) && id > 0).slice(0, 100)
+      ? exclude.filter((id) => Number.isInteger(id) && id > 0).slice(0, 100)
       : [];
 
     try {
@@ -273,7 +537,7 @@ function createApp(db) {
         return res.status(404).json({ error: 'You have seen all signals. Come back later for new transmissions.' });
       }
 
-      res.json({
+      return res.json({
         id: message.id,
         content: message.content,
         country: message.country,
@@ -281,61 +545,68 @@ function createApp(db) {
       });
     } catch (error) {
       console.error('Error fetching random message:', error);
-      res.status(500).json({ error: 'Error receiving signal' });
+      return res.status(500).json({ error: 'Error receiving signal' });
     }
   });
 
-  // POST /api/report - Report a message
   app.post('/api/report', rateLimiterRead, (req, res) => {
-    const { messageId, reason } = req.body;
+    const { messageId, reason } = req.body || {};
 
-    if (!messageId || !Number.isInteger(messageId) || messageId <= 0) {
+    if (!Number.isInteger(messageId) || messageId <= 0) {
       return res.status(400).json({ error: 'Valid message ID is required' });
     }
 
+    const trimmedReason = typeof reason === 'string' ? reason.trim() : null;
+    if (trimmedReason && trimmedReason.length > 500) {
+      return res.status(400).json({ error: 'Report reason cannot exceed 500 characters' });
+    }
+
     try {
-      // Atomic: check existence + insert report + auto-moderate if threshold reached
-      const result = autoModerate(messageId, reason || null);
+      const reporterHash = signValue(appSecret, `reporter:${getClientIp(req)}`);
+      const result = autoModerate(messageId, trimmedReason || null, reporterHash);
 
       if (result.notFound) {
         return res.status(404).json({ error: 'Message not found' });
       }
 
-      res.status(201).json({
+      if (result.duplicate) {
+        return res.status(409).json({
+          code: 'already_reported',
+          error: 'You have already reported this signal.'
+        });
+      }
+
+      return res.status(201).json({
         success: true,
         message: 'Report submitted. Thank you for helping keep the void safe.'
       });
     } catch (error) {
       console.error('Error saving report:', error);
-      res.status(500).json({ error: 'Error submitting report' });
+      return res.status(500).json({ error: 'Error submitting report' });
     }
   });
 
-  // GET /api/stats - Get total message count
   app.get('/api/stats', (req, res) => {
     try {
       const result = stmts.countMessages.get();
-      res.json({ total: result.total });
+      return res.json({ total: result.total });
     } catch (error) {
       console.error('Error fetching stats:', error);
-      res.status(500).json({ error: 'Error fetching statistics' });
+      return res.status(500).json({ error: 'Error fetching statistics' });
     }
   });
 
-  // GET /health - Health check endpoint for container orchestration
   app.get('/health', (req, res) => {
     try {
-      // Check database connectivity
       stmts.healthCheck.get();
-
-      res.status(200).json({
+      return res.status(200).json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
       });
     } catch (error) {
       console.error('Health check failed:', error);
-      res.status(503).json({
+      return res.status(503).json({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         error: 'Database connection failed'
@@ -343,53 +614,148 @@ function createApp(db) {
     }
   });
 
-  // 404 handler for unknown routes
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
   });
 
-  // Global error handler - don't expose internal errors
   app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
     res.status(500).json({ error: 'Internal server error' });
   });
 
-  return { app, db };
-}
-
-// Start server only when run directly
-if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-
-  // Ensure data directory exists
-  const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  function destroy() {
+    rateLimiterWrite.destroy();
+    rateLimiterRead.destroy();
   }
 
-  // Initialize SQLite database
-  const dbPath = path.join(dataDir, 'messages.db');
-  const db = new Database(dbPath);
-  const { app } = createApp(db);
+  return {
+    ACCESS_COOKIE_NAME,
+    app,
+    destroy,
+    stmts
+  };
+}
 
-  // Start server
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 Echo server listening on port ${PORT}`);
-    console.log(`📡 Database: ${dbPath}`);
+function createApp(input = {}, maybeOptions = {}) {
+  const dbProvidedDirectly = isDatabaseLike(input);
+  const options = dbProvidedDirectly ? maybeOptions : (input || {});
+  const port = options.port ?? process.env.PORT ?? DEFAULT_PORT;
+  const trustProxy = options.trustProxy ?? parseTrustProxy(process.env.TRUST_PROXY);
+  const countryLookupEnabled = options.countryLookupEnabled
+    ?? process.env.COUNTRY_LOOKUP_ENABLED === 'true';
+  const countryLookupUrlTemplate = options.countryLookupUrlTemplate
+    || process.env.COUNTRY_LOOKUP_URL_TEMPLATE
+    || '';
+  const secureCookies = options.secureCookies ?? process.env.NODE_ENV === 'production';
+
+  let db = dbProvidedDirectly ? input : options.db;
+  let dbPath = options.dbPath || null;
+  let ownsDb = false;
+  let appSecret = options.appSecret || null;
+
+  if (!db) {
+    const dataDir = options.dataDir || process.env.DATA_DIR || path.join(__dirname, 'data');
+    ensureDataDir(dataDir);
+    dbPath = path.join(dataDir, 'messages.db');
+    db = new Database(dbPath);
+    ownsDb = true;
+
+    if (!appSecret) {
+      appSecret = loadOrCreateSecret(path.join(dataDir, ACCESS_SECRET_FILE));
+    }
+  }
+
+  if (!appSecret) {
+    appSecret = crypto.randomBytes(32).toString('hex');
+  }
+
+  const built = buildApp({
+    appSecret,
+    countryLookupEnabled,
+    countryLookupUrlTemplate,
+    db,
+    fetchImpl: options.fetchImpl,
+    secureCookies,
+    trustProxy
   });
 
-  // Graceful shutdown with timeout
-  function shutdown() {
-    const forceExit = setTimeout(() => process.exit(1), 5000);
-    forceExit.unref();
-    server.close(() => {
-      try { db.close(); } catch (e) { /* ignore */ }
-      process.exit(0);
+  let server = null;
+
+  async function start(listenPort = port) {
+    if (server) {
+      return server;
+    }
+
+    server = await new Promise((resolve, reject) => {
+      const instance = built.app.listen(listenPort, () => resolve(instance));
+      instance.once('error', reject);
     });
+
+    return server;
+  }
+
+  async function close() {
+    built.destroy();
+
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+      server = null;
+    }
+
+    if (ownsDb) {
+      try {
+        db.close();
+      } catch {
+        // Ignore duplicate close attempts during shutdown.
+      }
+    }
+  }
+
+  return {
+    ACCESS_COOKIE_NAME,
+    app: built.app,
+    close,
+    db,
+    dbPath,
+    start,
+    stmts: built.stmts
+  };
+}
+
+async function main() {
+  const instance = createApp();
+  const server = await instance.start();
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : DEFAULT_PORT;
+
+  console.log(`Echo server listening on port ${port}`);
+  console.log(`Database: ${instance.dbPath}`);
+
+  async function shutdown() {
+    const forceExit = setTimeout(() => process.exit(1), 5000);
+    forceExit.unref?.();
+
+    try {
+      await instance.close();
+      process.exit(0);
+    } catch {
+      process.exit(1);
+    }
   }
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 }
 
-module.exports = { createApp };
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  ACCESS_COOKIE_NAME,
+  createApp,
+  parseTrustProxy
+};

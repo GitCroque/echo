@@ -1119,6 +1119,7 @@
     if (!currentMessageId || !btn || btn.disabled) return;
 
     btn.disabled = true;
+    const t = translations[currentLang];
 
     try {
       const response = await fetch('/api/report', {
@@ -1130,10 +1131,13 @@
       const data = await response.json();
 
       if (response.ok) {
-        const t = translations[currentLang];
         btn.textContent = t.reported;
         btn.classList.add('reported');
         showToast(data.message);
+      } else if (response.status === 409 || data.code === 'already_reported') {
+        btn.textContent = t.reported;
+        btn.classList.add('reported');
+        showToast(t.alreadyReported);
       } else {
         showToast(data.error || 'Error reporting');
         btn.disabled = false;
@@ -1450,4 +1454,3 @@
     init();
   }
 })();
-
