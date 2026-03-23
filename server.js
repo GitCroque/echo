@@ -142,6 +142,7 @@ const stmts = {
   insertMessage: db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)'),
   updateCountry: db.prepare('UPDATE messages SET country = ? WHERE id = ?'),
   getRandomMessage: db.prepare('SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1'),
+  getRandomMessageExcluding: db.prepare('SELECT id, content, country, created_at FROM messages WHERE id NOT IN (SELECT value FROM json_each(?)) ORDER BY RANDOM() LIMIT 1'),
   countMessages: db.prepare('SELECT COUNT(*) as total FROM messages'),
   checkMessage: db.prepare('SELECT id FROM messages WHERE id = ?'),
   insertReport: db.prepare('INSERT INTO reports (message_id, reason) VALUES (?, ?)'),
@@ -265,32 +266,16 @@ app.post('/api/message/random', rateLimiterRead, (req, res) => {
     : [];
 
   try {
-    let message;
-
-    if (excludeIds.length > 0) {
-      // Single query with ORDER BY RANDOM() - more efficient than COUNT + OFFSET
-      const placeholders = excludeIds.map(() => '?').join(',');
-      const selectStmt = db.prepare(`SELECT id, content, country, created_at FROM messages WHERE id NOT IN (${placeholders}) ORDER BY RANDOM() LIMIT 1`);
-      message = selectStmt.get(...excludeIds);
-
-      if (!message) {
-        const { total: allTotal } = stmts.countMessages.get();
-        if (allTotal === 0) {
-          return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
-        }
-        return res.status(404).json({ error: 'You have seen all signals. Come back later for new transmissions.' });
-      }
-    } else {
-      // Single query with ORDER BY RANDOM() for simplicity and consistency
-      message = db.prepare('SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1').get();
-
-      if (!message) {
-        return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
-      }
-    }
+    const message = excludeIds.length > 0
+      ? stmts.getRandomMessageExcluding.get(JSON.stringify(excludeIds))
+      : stmts.getRandomMessage.get();
 
     if (!message) {
-      return res.status(404).json({ error: 'Error receiving signal. Try again.' });
+      const { total } = stmts.countMessages.get();
+      if (total === 0) {
+        return res.status(404).json({ error: 'No signals detected yet. Be the first to transmit.' });
+      }
+      return res.status(404).json({ error: 'You have seen all signals. Come back later for new transmissions.' });
     }
 
     res.json({
