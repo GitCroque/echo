@@ -20,12 +20,17 @@ COPY package*.json ./
 COPY server.js ./
 COPY public ./public
 
-# Create data directory
-RUN mkdir -p /data
+# Create non-root user and data directory with correct permissions
+RUN addgroup -S echo && adduser -S echo -G echo \
+    && mkdir -p /data && chown echo:echo /data \
+    && chown -R echo:echo /app
 
 EXPOSE 3000
 
 ENV DATA_DIR=/data
+USER echo
 
-# Start the application
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "const p=process.env.PORT||3000;require('http').get('http://localhost:'+p+'/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
 CMD ["node", "server.js"]
