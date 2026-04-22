@@ -5,6 +5,7 @@ const compression = require('compression');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const pkg = require('./package.json');
 
 const DEFAULT_PORT = 3000;
 const MESSAGE_MAX_LENGTH = 140;
@@ -584,6 +585,10 @@ function buildApp(options) {
       console.error('Error saving report:', error);
       return res.status(500).json({ error: 'Error submitting report' });
     }
+  });
+
+  app.get('/api/version', (req, res) => {
+    res.json({ version: pkg.version });
   });
 
   app.get('/api/stats', (req, res) => {

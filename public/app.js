@@ -678,6 +678,16 @@
 
     els.stage = document.getElementById('stage');
     els.starfield = document.getElementById('starfield');
+    els.appVersion = document.getElementById('app-version');
+  }
+
+  async function loadAppVersion() {
+    if (!els.appVersion) return;
+    try {
+      const res = await fetch('/api/version');
+      const data = await res.json();
+      if (data && data.version) els.appVersion.textContent = 'v ' + data.version;
+    } catch (_) { /* offline */ }
   }
 
   // ================= Screen router =================
@@ -1396,6 +1406,7 @@
     buildStarfield(STAR_DENSITY);
     bindEvents();
     refreshStats();
+    loadAppVersion();
     updatePersonalStatsView();
     registerServiceWorker();
 
