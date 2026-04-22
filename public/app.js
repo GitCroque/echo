@@ -678,7 +678,6 @@
 
     els.stage = document.getElementById('stage');
     els.starfield = document.getElementById('starfield');
-    els.appVersion = document.getElementById('app-version');
   }
 
   // ================= Screen router =================
@@ -1389,7 +1388,6 @@
   function init() {
     cacheEls();
     state.lang = detectLang();
-    if (els.appVersion) els.appVersion.textContent = 'v ' + APP_VERSION;
 
     buildLangMenu();
     updateLangTrigger();
