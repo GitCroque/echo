@@ -5,6 +5,33 @@ All notable changes to Echo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-04-22
+
+### Added
+- 🎨 Full Cosmic Signal v2 redesign: oklch color palette, Fraunces + JetBrains Mono typography, editorial hairline composition
+- 🔮 Signal orb centerpiece with breathing core and staggered ambient pulses (warm for send, cool for receive)
+- 📡 Dedicated receive flow screens: Ready, Listening (waveform), Message (typewriter letter with blinking cursor), Empty
+- ⏳ Rate-limit screen with animated SVG countdown dial when the server returns 429
+- 📊 Stats screen with grid of `total signals` and personal `sent` / `received`
+- 🪪 Report modal for signal reporting with confirm/cancel
+- 📲 Install pill for PWA install prompt (honors `beforeinstallprompt`, persisted dismiss)
+- 🔌 Offline banner shown on `window.offline`, auto-hides on reconnect
+- ✨ Shooting stars fired on transmit and periodically in the starfield
+- 🔖 New `GET /api/version` endpoint returning `package.json` version; footer displays live release
+
+### Changed
+- 🧭 Client-side router: 9 screens (`home`, `send`, `transmit`, `receive-ready`, `receive-listening`, `receive-message`, `receive-empty`, `ratelimit`, `stats`) swapped with `fadeUp` transitions
+- 🔤 Typography swapped from Cormorant Garamond + Space Mono to Fraunces + JetBrains Mono
+- 🎛️ i18n keys flattened to dot-notation (`home.meta`, `receive.msg.report`, …); 8 languages retained (EN/FR/ES/DE/IT/PT/JA/ZH)
+- 📦 Service Worker cache `echo-v24` with new font URL
+
+### Removed
+- 🗑️ Cosmos / Ocean / Aurora theme selector (replaced by a single finished theme)
+- 🗑️ Nederlands, Русский, 한국어, العربية translations (kept in API contracts, removed from new copy)
+
+### Fixed
+- 🐛 CI `npm audit --omit=dev` failure: bumped transitive `path-to-regexp` to 0.1.13 (GHSA-37ch-88jc-xwx2)
+
 ## [1.9.2] - 2026-03-03
 
 ### Fixed
