@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0a12">
+  <meta name="theme-color" content="#1a1425">
   <meta name="description" content="Anonymous messages through the void - Send and receive anonymous messages from strangers">
   <title>ECHO - Anonymous messages through the void</title>
 
@@ -34,126 +34,319 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
   <!-- Styles — keep ?v= in sync with APP_VERSION in sw.js -->
-  <link rel="stylesheet" href="/style.css?v=23">
+  <link rel="stylesheet" href="/style.css?v=24">
 </head>
 <body>
-  <!-- Stars background with multiple layers -->
-  <div class="stars-container" id="stars-container">
-    <div class="stars stars-layer-1" id="stars-layer-1"></div>
-    <div class="stars stars-layer-2" id="stars-layer-2"></div>
-    <div class="stars stars-layer-3" id="stars-layer-3"></div>
+  <!-- Offline banner -->
+  <div class="offline-banner" id="offline-banner" role="status" aria-live="polite">
+    <span id="offline-text">Offline · the void is unreachable</span>
   </div>
 
-  <!-- Top bar with controls -->
-  <div class="top-bar">
-    <select class="select-mini" id="theme-select" title="Theme">
-      <option value="cosmos">🌌 Cosmos</option>
-      <option value="ocean">🌊 Ocean</option>
-      <option value="aurora">🌈 Aurora</option>
-    </select>
-    <div class="lang-dropdown" id="lang-dropdown">
-      <button class="lang-toggle" id="lang-toggle" type="button" title="Language" aria-label="Select language" aria-expanded="false">
-        <span class="lang-flag" id="current-flag">🇬🇧</span>
-      </button>
-      <div class="lang-menu" id="lang-menu" role="menu">
-        <button class="lang-option" data-lang="en" role="menuitem"><span class="lang-flag">🇬🇧</span> English</button>
-        <button class="lang-option" data-lang="fr" role="menuitem"><span class="lang-flag">🇫🇷</span> Français</button>
-        <button class="lang-option" data-lang="de" role="menuitem"><span class="lang-flag">🇩🇪</span> Deutsch</button>
-        <button class="lang-option" data-lang="es" role="menuitem"><span class="lang-flag">🇪🇸</span> Español</button>
-        <button class="lang-option" data-lang="it" role="menuitem"><span class="lang-flag">🇮🇹</span> Italiano</button>
-        <button class="lang-option" data-lang="pt" role="menuitem"><span class="lang-flag">🇧🇷</span> Português</button>
-        <button class="lang-option" data-lang="nl" role="menuitem"><span class="lang-flag">🇳🇱</span> Nederlands</button>
-        <button class="lang-option" data-lang="ru" role="menuitem"><span class="lang-flag">🇷🇺</span> Русский</button>
-        <button class="lang-option" data-lang="ja" role="menuitem"><span class="lang-flag">🇯🇵</span> 日本語</button>
-        <button class="lang-option" data-lang="ko" role="menuitem"><span class="lang-flag">🇰🇷</span> 한국어</button>
-        <button class="lang-option" data-lang="zh" role="menuitem"><span class="lang-flag">🇨🇳</span> 中文</button>
-        <button class="lang-option" data-lang="ar" role="menuitem"><span class="lang-flag">🇸🇦</span> العربية</button>
+  <!-- Starfield lives outside screens so it persists across transitions -->
+  <div class="starfield" id="starfield" aria-hidden="true"></div>
+
+  <main>
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="brandmark">
+        <span>Echo</span>
+        <span class="brandmark-sub" id="brandmark-sub">— transmitting</span>
       </div>
-    </div>
-    <button class="sound-toggle" id="sound-toggle" title="Toggle sound" aria-label="Toggle sound">
-      <svg id="sound-icon-on" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-      </svg>
-      <svg id="sound-icon-off" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none;">
-        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-      </svg>
-    </button>
-  </div>
-
-  <!-- Main content -->
-  <div class="container">
-    <header class="header">
-      <h1 class="title">ECHO</h1>
-      <p class="subtitle">Anonymous messages through the void</p>
+      <div class="bar-controls">
+        <div class="dropdown" id="lang-dropdown">
+          <button class="chip" id="lang-toggle" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span id="lang-current">EN</span>
+            <svg viewBox="0 0 12 12" aria-hidden="true" style="width:8px;height:8px;">
+              <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.2" fill="none"></path>
+            </svg>
+          </button>
+          <div class="menu" id="lang-menu" role="listbox"></div>
+        </div>
+        <button class="chip icon" id="sound-toggle" title="Toggle sound" aria-label="Toggle sound">
+          <svg id="sound-icon-on" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 3L4 6H2v4h2l4 3V3z"/>
+            <path d="M11 6a2 2 0 010 4M13 4a5 5 0 010 8" stroke="currentColor" stroke-width="1" fill="none"/>
+          </svg>
+          <svg id="sound-icon-off" viewBox="0 0 16 16" aria-hidden="true" style="display:none;">
+            <path d="M8 3L4 6H2v4h2l4 3V3z"/>
+            <path d="M11 6l4 4M15 6l-4 4" stroke="currentColor" stroke-width="1" fill="none"/>
+          </svg>
+        </button>
+      </div>
     </header>
 
-    <div class="main-content">
-      <!-- Home Section (landing page) -->
-      <div class="section active" id="section-home">
-        <p class="home-intro">Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.</p>
-        <div class="home-buttons" role="group" aria-label="Main actions">
-          <button class="btn-pill" id="btn-go-send" aria-label="Send a signal into the void">Send a Signal</button>
-          <button class="btn-link" id="btn-go-receive" aria-label="Receive a signal from a stranger">Receive a Signal</button>
+    <!-- Stage: all screens live here, only one is .active at a time -->
+    <div class="stage" id="stage">
+
+      <!-- 1. Home -->
+      <section class="screen active" id="screen-home" data-screen="home">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="home.meta">Signal active</span>
+          <span class="sep"></span>
         </div>
-        <p class="home-stats" id="home-stats"></p>
-        <p class="personal-stats" id="personal-stats"></p>
-      </div>
+        <div class="signal-orb-wrap" data-orb>
+          <div class="orb-ring r4"></div>
+          <div class="orb-ring r3"></div>
+          <div class="orb-ring r2"></div>
+          <div class="orb-ring"></div>
+          <div class="orb-core-orbit"><div class="orb-core"></div></div>
+          <div class="pulse auto-pulse"></div>
+          <div class="pulse auto-pulse d2"></div>
+          <div class="pulse auto-pulse d3"></div>
+        </div>
+        <div class="wordmark">
+          <h1>Echo</h1>
+          <p class="tagline" data-i18n="home.tagline">Cast a signal into the cosmos. Discover messages from other wanderers. Anonymous. Timeless. Human.</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary" id="btn-home-send" data-i18n="home.send">Send a signal</button>
+          <button class="btn-link" id="btn-home-listen" data-i18n="home.listen">— listen to the void —</button>
+        </div>
+        <div class="meta-line" style="margin-top:0.5rem;">
+          <button class="btn-link" id="btn-home-stats" style="padding:0;"><span id="home-stats-count">0</span> <span data-i18n="home.statsSuffix">signals released</span></button>
+        </div>
+      </section>
 
-      <!-- Send Section -->
-      <div class="section" id="section-send">
-        <h2 class="section-title">Transmit to the void</h2>
-        <form class="send-form glass" id="send-form">
-          <label for="message-input" class="visually-hidden">Your message to the universe</label>
-          <textarea
-            id="message-input"
-            placeholder="What do you want to transmit to the universe?"
-            maxlength="140"
-            aria-describedby="char-counter"
-          ></textarea>
-          <div class="char-counter" id="char-counter" role="status" aria-live="polite">0 / 140</div>
-          <button type="submit" class="btn btn-primary" id="btn-send" aria-label="Transmit your message">Transmit</button>
-        </form>
-        <button class="btn btn-ghost btn-back" id="btn-back-send">← Back</button>
-      </div>
-
-      <!-- Receive Section -->
-      <div class="section" id="section-receive">
-        <div class="receive-section">
-          <h2 class="section-title">Listen to the void</h2>
-          <p class="receive-intro" id="receive-intro">Discover a signal from a stranger.</p>
-          <button class="btn btn-primary" id="btn-receive" aria-label="Receive a signal from the void">Receive a signal</button>
-
-          <div class="message-display" id="message-display" aria-live="polite" aria-atomic="true">
-            <div class="message-label">Signal from a stranger</div>
-            <p class="message-content" id="message-content"></p>
-            <p class="message-date" id="message-date"></p>
-            <div class="message-actions" id="message-actions" style="display: none;">
-              <button class="btn-report" id="btn-report" aria-label="Report this message">Report</button>
-              <span></span>
-            </div>
+      <!-- 2. Send — Compose -->
+      <section class="screen" id="screen-send" data-screen="send">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="send.meta">Compose your signal</span>
+          <span class="sep"></span>
+        </div>
+        <form class="composer" id="send-form">
+          <div class="composer-frame">
+            <label for="message-input" class="sr">Your signal</label>
+            <textarea id="message-input" maxlength="140" rows="4" data-i18n-placeholder="send.placeholder" placeholder="What do you want to transmit to the universe?"></textarea>
           </div>
-
-          <button class="btn btn-primary btn-another" id="btn-another" style="display: none;" aria-label="Receive another signal">Receive another</button>
-          <button class="btn btn-ghost" id="btn-new-signal" aria-label="Send a new signal">Send a signal</button>
-          <button class="btn btn-ghost btn-back" id="btn-back-receive">← Back</button>
+          <div class="composer-meta">
+            <span data-i18n="send.rule">140 char · no urls</span>
+            <div class="char-bar" id="char-bar"><span></span></div>
+            <span><span id="char-count">0</span> / 140</span>
+          </div>
+        </form>
+        <div class="actions">
+          <button class="btn-primary" id="btn-send-submit" disabled data-i18n="send.submit">Transmit</button>
+          <button class="btn-link" data-nav="home" data-i18n="back">— back —</button>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <span class="footer-text">Somewhere, someone is listening</span>
-    <span class="app-version" id="app-version"></span>
-  </footer>
+      <!-- 3. Send — Transmitting / Sent -->
+      <section class="screen" id="screen-transmit" data-screen="transmit">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span id="transmit-meta" data-i18n="send.transmitting">Transmitting</span>
+          <span class="sep"></span>
+        </div>
+        <div class="signal-orb-wrap" data-orb data-orb-burst>
+          <div class="orb-ring r4"></div>
+          <div class="orb-ring r3"></div>
+          <div class="orb-ring r2"></div>
+          <div class="orb-ring"></div>
+          <div class="orb-core-orbit"><div class="orb-core"></div></div>
+          <div class="pulse auto-pulse"></div>
+          <div class="pulse auto-pulse d2"></div>
+          <div class="pulse auto-pulse d3"></div>
+        </div>
+        <p class="tagline" id="transmit-tagline" data-i18n="send.releasing">Releasing your signal into the void…</p>
+      </section>
+
+      <!-- 4. Receive — Ready -->
+      <section class="screen" id="screen-receive-ready" data-screen="receive-ready">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="receive.ready.meta">Tune in</span>
+          <span class="sep"></span>
+        </div>
+        <div class="signal-orb-wrap" data-orb>
+          <div class="orb-ring r4"></div>
+          <div class="orb-ring r3"></div>
+          <div class="orb-ring r2"></div>
+          <div class="orb-ring"></div>
+          <div class="orb-core-orbit"><div class="orb-core cool"></div></div>
+          <div class="pulse auto-pulse cool"></div>
+          <div class="pulse auto-pulse d2 cool"></div>
+          <div class="pulse auto-pulse d3 cool"></div>
+        </div>
+        <div class="wordmark">
+          <h1 class="small" data-i18n="receive.ready.heading">Listen</h1>
+          <p class="tagline" data-i18n="receive.ready.tagline">Open yourself to a single signal from a stranger. It may arrive warm, strange, or beautiful.</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary cool" id="btn-receive-start" data-i18n="receive.ready.cta">Receive a signal</button>
+          <button class="btn-link" data-nav="home" data-i18n="back">— back —</button>
+        </div>
+      </section>
+
+      <!-- 5. Receive — Listening -->
+      <section class="screen" id="screen-receive-listening" data-screen="receive-listening">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="receive.listening.meta">Scanning the void</span>
+          <span class="sep"></span>
+        </div>
+        <div class="signal-orb-wrap" data-orb>
+          <div class="orb-ring r4"></div>
+          <div class="orb-ring r3"></div>
+          <div class="orb-ring r2"></div>
+          <div class="orb-ring"></div>
+          <div class="orb-core-orbit"><div class="orb-core cool"></div></div>
+        </div>
+        <div class="waveform" aria-hidden="true">
+          <span style="animation-delay:0s"></span>
+          <span style="animation-delay:0.08s"></span>
+          <span style="animation-delay:0.16s"></span>
+          <span style="animation-delay:0.24s"></span>
+          <span style="animation-delay:0.32s"></span>
+          <span style="animation-delay:0.4s"></span>
+          <span style="animation-delay:0.48s"></span>
+          <span style="animation-delay:0.56s"></span>
+          <span style="animation-delay:0.64s"></span>
+        </div>
+        <p class="listen-hint" data-i18n="receive.listening.hint">One voice · drawing near</p>
+      </section>
+
+      <!-- 6. Receive — Message (Letter) -->
+      <section class="screen" id="screen-receive-message" data-screen="receive-message">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="receive.msg.meta">Signal captured</span>
+          <span class="sep"></span>
+        </div>
+        <div class="letter" id="letter">
+          <div class="letter-header">
+            <span class="tag" id="letter-transmission">Transmission 0000</span>
+            <span id="letter-meta">—</span>
+          </div>
+          <p class="letter-body" id="letter-body"></p>
+          <div class="letter-footer">
+            <button class="btn-report" id="btn-report" data-i18n="receive.msg.report">· report</button>
+            <span data-i18n="receive.msg.end">end of signal</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-primary cool" id="btn-receive-again" data-i18n="receive.msg.again">Receive another</button>
+          <button class="btn-link" data-nav="send" data-i18n="receive.msg.sendOne">— send a signal —</button>
+          <button class="btn-link" data-nav="home" data-i18n="back">— back —</button>
+        </div>
+      </section>
+
+      <!-- 7. Receive — Empty -->
+      <section class="screen" id="screen-receive-empty" data-screen="receive-empty">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="receive.empty.meta">No signal</span>
+          <span class="sep"></span>
+        </div>
+        <div class="signal-orb-wrap" data-orb>
+          <div class="orb-ring r4"></div>
+          <div class="orb-ring r3"></div>
+          <div class="orb-ring r2"></div>
+          <div class="orb-ring"></div>
+          <div class="orb-core-orbit"><div class="orb-core cool"></div></div>
+          <div class="pulse auto-pulse cool"></div>
+          <div class="pulse auto-pulse d2 cool"></div>
+          <div class="pulse auto-pulse d3 cool"></div>
+        </div>
+        <div class="wordmark">
+          <h1 class="small" data-i18n="receive.empty.heading">Silence</h1>
+          <p class="tagline" id="empty-tagline" data-i18n="receive.empty.tagline">You've heard every voice we could find. Send your own — maybe someone is waiting on the other side.</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary" data-nav="send" data-i18n="home.send">Send a signal</button>
+          <button class="btn-link" id="btn-empty-retry" data-i18n="receive.empty.retry">— try again —</button>
+          <button class="btn-link" data-nav="home" data-i18n="back">— back —</button>
+        </div>
+      </section>
+
+      <!-- 8. Rate Limit -->
+      <section class="screen" id="screen-ratelimit" data-screen="ratelimit">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="ratelimit.meta">Cooldown · too many signals</span>
+          <span class="sep"></span>
+        </div>
+        <div class="timer-dial">
+          <svg viewBox="0 0 84 84" aria-hidden="true">
+            <circle class="track" cx="42" cy="42" r="38"></circle>
+            <circle class="fill" id="timer-fill" cx="42" cy="42" r="38"></circle>
+          </svg>
+          <div class="count" id="timer-count">02:00</div>
+        </div>
+        <div class="wordmark">
+          <h1 class="small" data-i18n="ratelimit.heading">Pause</h1>
+          <p class="tagline" data-i18n="ratelimit.tagline">The void asks for a breath. Your signals are loud — give the silence a little room before sending again.</p>
+        </div>
+        <div class="actions">
+          <button class="btn-primary" id="btn-ratelimit-resume" disabled data-i18n="ratelimit.waiting">Waiting…</button>
+          <button class="btn-link" data-nav="home" data-i18n="ratelimit.backHome">— back to home —</button>
+        </div>
+      </section>
+
+      <!-- 9. Stats -->
+      <section class="screen" id="screen-stats" data-screen="stats" style="gap:2rem;">
+        <div class="meta-line">
+          <span class="sep"></span>
+          <span data-i18n="stats.meta">The void · in numbers</span>
+          <span class="sep"></span>
+        </div>
+        <div class="wordmark">
+          <h1 class="small" data-i18n="stats.heading">Echoes</h1>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <span class="stat-label" data-i18n="stats.total">Total signals</span>
+            <span class="stat-value" id="stat-total">0</span>
+            <span class="stat-sub" data-i18n="stats.totalSub">across the void</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-label" data-i18n="stats.you">You sent</span>
+            <span class="stat-value" id="stat-sent">0</span>
+            <span class="stat-sub cool"><span id="stat-received">0</span> <span data-i18n="stats.received">received</span></span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-link" data-nav="home" data-i18n="back">— back —</button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <span class="foot-quote" id="footer-quote" data-i18n="footer.quote">"Somewhere, someone is listening"</span>
+      <span class="foot-version" id="app-version">v 2.0</span>
+    </footer>
+  </main>
 
   <!-- Toast -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <!-- Install pill -->
+  <div class="install-pill" id="install-pill">
+    <span id="install-label" data-i18n="install.label">Install Echo · stay connected to the void</span>
+    <button id="install-action" type="button" data-i18n="install.action">Install</button>
+    <button id="install-dismiss" type="button" class="close" aria-label="Dismiss">×</button>
+  </div>
+
+  <!-- Report modal -->
+  <div class="modal-backdrop" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div class="modal">
+      <div class="modal-eyebrow" data-i18n="report.eyebrow">· Report signal</div>
+      <h3 class="modal-title" id="report-title" data-i18n="report.title">Report this transmission?</h3>
+      <p class="modal-body" data-i18n="report.body">Three reports cause a signal to vanish from the void. Use this only for content that feels harmful or unsafe — not for messages you simply don't like.</p>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-report-cancel" data-i18n="report.cancel">Keep listening</button>
+        <button class="btn-primary warn" id="btn-report-confirm" data-i18n="report.confirm">Report</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Application JavaScript — keep ?v= in sync with APP_VERSION in sw.js -->
-  <script src="/app.js?v=23"></script>
+  <script src="/app.js?v=24"></script>
 </body>
 </html>
