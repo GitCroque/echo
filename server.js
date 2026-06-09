@@ -451,7 +451,14 @@ function buildApp(options) {
 
   app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: '1d',
-    etag: true
+    etag: true,
+    setHeaders(res, filePath) {
+      // HTML and the service worker must revalidate on every request,
+      // otherwise browsers and the CDN pin old asset versions for a day.
+      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+        res.set('Cache-Control', 'no-cache');
+      }
+    }
   }));
 
   function requireReceiveAccess(req, res, next) {

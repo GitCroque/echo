@@ -385,6 +385,16 @@ describe('GET /health and headers', () => {
     assert.match(health.headers['content-security-policy'] || '', /default-src 'self'/i);
     assert.equal(stats.headers['cache-control'], 'no-store');
   });
+
+  it('serves HTML and service worker with no-cache, other assets with max-age', async () => {
+    const home = await ctx.request.get('/');
+    const sw = await ctx.request.get('/sw.js');
+    const css = await ctx.request.get('/style.css');
+
+    assert.equal(home.headers['cache-control'], 'no-cache');
+    assert.equal(sw.headers['cache-control'], 'no-cache');
+    assert.match(css.headers['cache-control'] || '', /max-age=86400/);
+  });
 });
 
 describe('Rate limiting', () => {
