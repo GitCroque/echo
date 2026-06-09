@@ -1,7 +1,7 @@
-const CACHE_NAME = 'echo-v25';
-const APP_VERSION = '25';
-// Cross-origin URLs (Google Fonts) must not be precached: the worker CSP is
-// connect-src 'self', so cache.addAll would reject and abort the whole install.
+const CACHE_NAME = 'echo-v26';
+const APP_VERSION = '26';
+// Fonts are same-origin (/fonts/) and runtime-cached on first use;
+// cross-origin URLs must not be precached (worker CSP is connect-src 'self').
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
