@@ -1,5 +1,7 @@
-const CACHE_NAME = 'echo-v24';
-const APP_VERSION = '24';
+const CACHE_NAME = 'echo-v25';
+const APP_VERSION = '25';
+// Cross-origin URLs (Google Fonts) must not be precached: the worker CSP is
+// connect-src 'self', so cache.addAll would reject and abort the whole install.
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -9,8 +11,7 @@ const ASSETS_TO_CACHE = [
   '/favicon.png',
   '/icon-180.png',
   '/icon-192.png',
-  '/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=JetBrains+Mono:wght@300;400;500&display=swap'
+  '/icon-512.png'
 ];
 
 // Install event - cache assets
@@ -41,6 +42,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
+
+  // Skip cross-origin requests (fonts, etc.) - let the browser handle them
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   // Skip API requests - always go to network
   if (event.request.url.includes('/api/')) return;

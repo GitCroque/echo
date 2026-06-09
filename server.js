@@ -75,6 +75,7 @@ function createRateLimiter(config) {
 
     if (data.count >= config.max) {
       const waitTime = Math.ceil((config.window - (now - data.windowStart)) / 1000);
+      res.set('Retry-After', String(waitTime));
       return res.status(429).json({
         error: `Too many requests. Please wait ${waitTime} seconds.`
       });
@@ -356,8 +357,8 @@ function initDb(db) {
   const stmts = {
     insertMessage: db.prepare('INSERT INTO messages (content, country) VALUES (?, ?)'),
     updateCountry: db.prepare('UPDATE messages SET country = ? WHERE id = ?'),
-    getRandomMessage: db.prepare('SELECT id, content, country, created_at FROM messages ORDER BY RANDOM() LIMIT 1'),
-    getRandomMessageExcluding: db.prepare('SELECT id, content, country, created_at FROM messages WHERE id NOT IN (SELECT value FROM json_each(?)) ORDER BY RANDOM() LIMIT 1'),
+    getRandomMessage: db.prepare("SELECT id, content, country, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at FROM messages ORDER BY RANDOM() LIMIT 1"),
+    getRandomMessageExcluding: db.prepare("SELECT id, content, country, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at FROM messages WHERE id NOT IN (SELECT value FROM json_each(?)) ORDER BY RANDOM() LIMIT 1"),
     countMessages: db.prepare('SELECT COUNT(*) as total FROM messages'),
     checkMessage: db.prepare('SELECT id FROM messages WHERE id = ?'),
     insertReport: db.prepare('INSERT INTO reports (message_id, reason, reporter_hash) VALUES (?, ?, ?)'),

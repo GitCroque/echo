@@ -4,7 +4,6 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '24';
   const LIMIT = 140;
   const LISTEN_MIN_MS = 1800;
   const TRANSMITTING_MS = 1400;
@@ -1049,7 +1048,6 @@
           showToast(t('receive.forbidden'));
         }, wait);
       } else if (res.status === 429) {
-        const retry = parseInt(res.headers.get('Retry-After') || '60', 10);
         setTimeout(function () {
           showScreen('receive-ready');
           showToast(t('ratelimit.meta'));

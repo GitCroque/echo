@@ -198,7 +198,8 @@ describe('POST /api/message/random', () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.content, 'Hello from the void');
     assert.ok(res.body.id);
-    assert.ok(res.body.created_at);
+    assert.match(res.body.created_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.ok(!Number.isNaN(Date.parse(res.body.created_at)));
   });
 
   it('returns 404 when all messages are excluded', async () => {
@@ -406,6 +407,9 @@ describe('Rate limiting', () => {
     const res = await ctx.request.post('/api/message').send({ content: 'one too many' });
     assert.equal(res.status, 429);
     assert.match(res.body.error, /too many requests/i);
+    assert.match(res.headers['retry-after'] || '', /^\d+$/);
+    const retryAfter = Number(res.headers['retry-after']);
+    assert.ok(retryAfter > 0 && retryAfter <= 120);
   });
 
   it('does not let X-Forwarded-For bypass write limits when trust proxy is disabled', async () => {
